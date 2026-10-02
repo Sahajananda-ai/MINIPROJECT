@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from .routers import vendors, deals
 
 app = FastAPI(
     title="Mystery Box API",
@@ -15,6 +16,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include our new API routers
+app.include_router(vendors.router)
+app.include_router(deals.router)
 
 @app.get("/")
 def read_root():
