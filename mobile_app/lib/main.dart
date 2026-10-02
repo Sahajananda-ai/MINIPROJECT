@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/student_map.dart';
+import 'screens/vendor_dashboard.dart';
 
 void main() {
   runApp(const MysteryBoxApp());
@@ -25,7 +26,7 @@ class MysteryBoxApp extends StatelessWidget {
           elevation: 0,
         ),
       ),
-      home: const StudentMapScreen(),
+      home: const VendorDashboardScreen(),
     );
   }
 }
