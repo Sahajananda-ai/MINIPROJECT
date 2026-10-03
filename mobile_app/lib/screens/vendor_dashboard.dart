@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 
 class VendorDashboardScreen extends StatefulWidget {
   const VendorDashboardScreen({super.key});
@@ -13,6 +14,55 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
   final _startPriceController = TextEditingController();
   final _minPriceController = TextEditingController();
   final _quantityController = TextEditingController();
+  bool _isLoading = false;
+
+  void _createDeal() async {
+    final originalValue = double.tryParse(_originalValueController.text) ?? 0;
+    final startPrice = double.tryParse(_startPriceController.text) ?? 0;
+    final minPrice = double.tryParse(_minPriceController.text) ?? 0;
+    final quantity = int.tryParse(_quantityController.text) ?? 0;
+
+    if (originalValue <= 0 || startPrice <= 0 || minPrice <= 0 || quantity <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter valid positive numbers.")),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    // Hardcoding vendorId to 1 and setting closing time to 4 hours from now for demo purposes.
+    final success = await ApiService.createMysteryBox(
+      vendorId: 1, 
+      originalValue: originalValue,
+      startPrice: startPrice,
+      minPrice: minPrice,
+      quantity: quantity,
+      closingTime: DateTime.now().add(const Duration(hours: 4)),
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Mystery Box Listed Successfully!")),
+      );
+      _originalValueController.clear();
+      _startPriceController.clear();
+      _minPriceController.clear();
+      _quantityController.clear();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to create deal. Try again.")),
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -132,12 +182,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: () {
-                  // TODO: Connect to FastAPI backend
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Deal created successfully!")),
-                  );
-                },
+                onPressed: _isLoading ? null : _createDeal,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Theme.of(context).colorScheme.primary,
                   foregroundColor: Colors.white,
@@ -146,10 +191,16 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                   ),
                   elevation: 5,
                 ),
-                child: const Text(
-                  "List Mystery Box Now",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
+                child: _isLoading 
+                    ? const SizedBox(
+                        width: 24, 
+                        height: 24, 
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
+                      )
+                    : const Text(
+                        "List Mystery Box Now",
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
               ),
             ),
           ],

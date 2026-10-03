@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from typing import List
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from .. import models, schemas
@@ -56,3 +57,17 @@ def create_deal(deal: schemas.DealCreate, background_tasks: BackgroundTasks, db:
     )
     
     return new_deal
+
+@router.get("/active", response_model=List[schemas.DealWithVendorResponse])
+def get_active_deals(db: Session = Depends(get_db)):
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    
+    # We would typically do a spatial query here to only return deals near the student,
+    # but for simplicity we return all active deals that haven't closed yet.
+    active_deals = db.query(models.Deal).filter(
+        models.Deal.is_active == True,
+        models.Deal.closing_time > now,
+        models.Deal.quantity > 0
+    ).all()
+    
+    return active_deals

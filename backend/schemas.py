@@ -55,3 +55,9 @@ class DealResponse(DealBase):
 
     class Config:
         from_attributes = True
+
+class DealWithVendorResponse(DealResponse):
+    vendor: VendorResponse
+
+    class Config:
+        from_attributes = True
