@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database with PostGIS extension for Spatial Queries
+  db:
+    image: postgis/postgis:15-3.3
+    container_name: mystery_box_db
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=mysterybox
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # Redis for Inventory Locking and TTL Expiry
+  redis:
+    image: redis:7-alpine
+    container_name: mystery_box_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
