@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/student_home.dart';
+import 'screens/onboarding.dart';
 
 void main() {
   runApp(const MysteryBoxApp());
@@ -15,12 +15,14 @@ class MysteryBoxApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
+        fontFamily: 'Inter', // Assuming Inter or system font for a clean modern look
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepOrange,
+          seedColor: const Color(0xFF006C5B), // Too Good To Go style deep rich green/teal
+          primary: const Color(0xFF006C5B),
           brightness: Brightness.light,
         ),
       ),
-      home: const StudentHomeScreen(),
+      home: const OnboardingScreen(),
     );
   }
 }
