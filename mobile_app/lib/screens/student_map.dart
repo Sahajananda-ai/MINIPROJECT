@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../services/api_service.dart';
+import 'checkout.dart';
 
 class StudentMapScreen extends StatefulWidget {
   const StudentMapScreen({super.key});
@@ -164,32 +165,86 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // TODO: Implement Checkout logic
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Proceeding to checkout...")),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepOrange,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: const Text(
-                    "Reserve Now",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
+                child: _ReserveButton(deal: deal),
               ),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+class _ReserveButton extends StatefulWidget {
+  final dynamic deal;
+
+  const _ReserveButton({required this.deal});
+
+  @override
+  State<_ReserveButton> createState() => _ReserveButtonState();
+}
+
+class _ReserveButtonState extends State<_ReserveButton> {
+  bool _isReserving = false;
+
+  void _reserveDeal() async {
+    setState(() {
+      _isReserving = true;
+    });
+
+    // Mock student ID 1 for now
+    final reservationResponse = await ApiService.reserveDeal(
+      dealId: widget.deal['id'],
+      studentId: 1,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _isReserving = false;
+    });
+
+    if (reservationResponse != null && reservationResponse['success'] == true) {
+      Navigator.pop(context); // Close the bottom sheet
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CheckoutScreen(
+            deal: widget.deal,
+            reservation: reservationResponse,
+          ),
+        ),
+      );
+    } else {
+      final msg = reservationResponse != null ? reservationResponse['detail'] ?? reservationResponse['message'] : "Failed to reserve";
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg ?? "Failed to reserve this deal.")),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: _isReserving ? null : _reserveDeal,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.deepOrange,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 15),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+      child: _isReserving 
+          ? const SizedBox(
+              width: 24, 
+              height: 24, 
+              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
+            )
+          : const Text(
+              "Reserve Now",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
     );
   }
 }

@@ -32,3 +32,27 @@ def register_vendor(vendor: schemas.VendorCreate, db: Session = Depends(get_db))
     db.refresh(new_vendor)
 
     return new_vendor
+
+@router.post("/{vendor_id}/rate", response_model=dict)
+def rate_vendor(vendor_id: int, request: schemas.RateVendorRequest, db: Session = Depends(get_db)):
+    vendor = db.query(models.Vendor).filter(models.Vendor.id == vendor_id).first()
+    if not vendor:
+        raise HTTPException(status_code=404, detail="Vendor not found")
+
+    # A simple moving average for rating (in reality you'd store all ratings and compute)
+    # We will just shift the rating 10% towards the new rating
+    vendor.rating = round((vendor.rating * 0.9) + (request.rating * 0.1), 2)
+    
+    # Auto-suspend logic
+    if vendor.rating < 3.0:
+        vendor.is_suspended = True
+        
+    db.commit()
+    db.refresh(vendor)
+
+    return {
+        "success": True, 
+        "new_rating": vendor.rating, 
+        "is_suspended": vendor.is_suspended,
+        "message": "Account suspended due to low ratings" if vendor.is_suspended else "Rating submitted"
+    }

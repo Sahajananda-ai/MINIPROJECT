@@ -61,3 +61,21 @@ class DealWithVendorResponse(DealResponse):
 
     class Config:
         from_attributes = True
+
+# --- RESERVATION SCHEMAS ---
+class ReserveRequest(BaseModel):
+    student_id: int
+    deal_id: int
+
+class ReserveResponse(BaseModel):
+    success: bool
+    message: str
+    reserved_price: Optional[float] = None
+    expires_in_seconds: Optional[int] = None
+
+# --- PICKUP & ACCOUNTABILITY SCHEMAS ---
+class CompleteDealRequest(BaseModel):
+    student_id: int
+
+class RateVendorRequest(BaseModel):
+    rating: float = Field(..., ge=1.0, le=5.0, description="Rating from 1 to 5 stars")

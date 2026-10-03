@@ -61,4 +61,32 @@ class ApiService {
       return [];
     }
   }
+
+  static Future<Map<String, dynamic>?> reserveDeal({
+    required int dealId,
+    required int studentId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/deals/reserve'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'deal_id': dealId,
+          'student_id': studentId,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        print('Failed to reserve deal: ${response.statusCode} - ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('Exception during reserveDeal: $e');
+      return null;
+    }
+  }
 }
