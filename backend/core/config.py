@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Mystery Box API"
-    DATABASE_URL: str = "postgresql://user:password@localhost/mysterybox"
+    DATABASE_URL: str = "postgresql+pg8000://user:password@localhost/mysterybox"
     REDIS_URL: str = "redis://localhost:6379/0"
     
     # Razorpay Test Keys

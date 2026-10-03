@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/student_map.dart';
-import 'screens/vendor_dashboard.dart';
+import 'screens/student_home.dart';
 
 void main() {
   runApp(const MysteryBoxApp());
@@ -14,19 +13,14 @@ class MysteryBoxApp extends StatelessWidget {
     return MaterialApp(
       title: 'Mystery Box',
       debugShowCheckedModeBanner: false,
-      // Here is where we inject the premium Google Material Design feel!
       theme: ThemeData(
-        useMaterial3: true, // Uses the latest Material Design 3 guidelines
+        useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepOrange, // A nice food-app style color
+          seedColor: Colors.deepOrange,
           brightness: Brightness.light,
         ),
-        appBarTheme: const AppBarTheme(
-          centerTitle: true,
-          elevation: 0,
-        ),
       ),
-      home: const VendorDashboardScreen(),
+      home: const StudentHomeScreen(),
     );
   }
 }
