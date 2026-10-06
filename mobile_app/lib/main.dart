@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/onboarding.dart';
+import 'screens/vendor_dashboard.dart';
 
 void main() {
   runApp(const MysteryBoxApp());
@@ -22,7 +23,7 @@ class MysteryBoxApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
       ),
-      home: const OnboardingScreen(),
+      home: const VendorDashboardScreen(),
     );
   }
 }

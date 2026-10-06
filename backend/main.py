@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import asyncio
-from .routers import vendors, deals
+from .routers import vendors, deals, students, auth
 from .database import engine, SessionLocal
 from .services import decay_pricing
 from . import models
@@ -51,6 +51,8 @@ app.add_middleware(
 # Include our new API routers
 app.include_router(vendors.router)
 app.include_router(deals.router)
+app.include_router(students.router)
+app.include_router(auth.router)
 
 @app.get("/")
 def read_root():
