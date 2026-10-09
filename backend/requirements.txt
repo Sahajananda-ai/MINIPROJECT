@@ -2,7 +2,7 @@ fastapi
 uvicorn
 SQLAlchemy
 GeoAlchemy2
-pg8000
+psycopg2-binary
 redis
 pydantic
 pydantic-settings

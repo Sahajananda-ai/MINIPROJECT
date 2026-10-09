@@ -2,10 +2,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import asyncio
-from routers import vendors, deals, students, auth
-from database import engine, SessionLocal
-from services import decay_pricing
-import models
+from .routers import vendors, deals, students, auth
+from .database import engine, SessionLocal
+from .services import decay_pricing
+from . import models
 
 # Create all database tables
 models.Base.metadata.create_all(bind=engine)
