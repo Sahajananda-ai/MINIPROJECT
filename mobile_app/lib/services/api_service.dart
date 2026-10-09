@@ -1,9 +1,19 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ApiService {
-  // Since we are running locally, we point to the FastAPI localhost server
-  static const String baseUrl = 'http://127.0.0.1:8000';
+  // Since we are running locally, we point to the FastAPI localhost server.
+  static String get baseUrl {
+    if (kIsWeb) {
+      return 'http://127.0.0.1:8000';
+    }
+    if (Platform.isAndroid) {
+      return 'http://10.0.2.2:8000';
+    }
+    return 'http://127.0.0.1:8000';
+  }
 
   /// Simulates a vendor registering or logging in to get their ID
   /// (In a real app, this would happen during a signup screen)

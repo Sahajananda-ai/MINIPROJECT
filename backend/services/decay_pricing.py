@@ -7,7 +7,7 @@ def calculate_decay_price(deal: models.Deal) -> float:
     Calculates the current price based on the dynamic decay formula.
     current_price = max(min_price, start_price - (elapsed/total) * (start_price - min_price))
     """
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(timezone.utc)
     
     # If the deal is already expired
     if now >= deal.closing_time:

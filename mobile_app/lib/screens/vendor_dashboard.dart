@@ -33,15 +33,19 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
       _isLoading = true;
     });
 
-    // Hardcoding vendorId to 1 and setting closing time to 4 hours from now for demo purposes.
-    final success = await ApiService.createMysteryBox(
-      vendorId: 1, 
-      originalValue: originalValue,
-      startPrice: startPrice,
-      minPrice: minPrice,
-      quantity: quantity,
-      closingTime: DateTime.now().add(const Duration(hours: 4)),
-    );
+    bool success = false;
+    try {
+      success = await ApiService.createMysteryBox(
+        vendorId: 1, 
+        originalValue: originalValue,
+        startPrice: startPrice,
+        minPrice: minPrice,
+        quantity: quantity,
+        closingTime: DateTime.now().add(const Duration(hours: 4)),
+      );
+    } catch (e) {
+      print("Error creating deal: $e");
+    }
 
     if (!mounted) return;
 
@@ -59,7 +63,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
       _quantityController.clear();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to create deal. Try again.")),
+        const SnackBar(content: Text("Failed to create deal. Ensure backend is running.")),
       );
     }
   }

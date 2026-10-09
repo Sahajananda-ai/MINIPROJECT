@@ -31,7 +31,16 @@ def register_vendor(vendor: schemas.VendorCreate, db: Session = Depends(get_db))
     db.commit()
     db.refresh(new_vendor)
 
-    return new_vendor
+    return {
+        "id": new_vendor.id,
+        "name": new_vendor.name,
+        "fssai_license": new_vendor.fssai_license,
+        "shop_category": new_vendor.shop_category,
+        "longitude": vendor.longitude,
+        "latitude": vendor.latitude,
+        "rating": new_vendor.rating,
+        "is_suspended": new_vendor.is_suspended
+    }
 
 @router.post("/{vendor_id}/rate", response_model=dict)
 def rate_vendor(vendor_id: int, request: schemas.RateVendorRequest, db: Session = Depends(get_db)):

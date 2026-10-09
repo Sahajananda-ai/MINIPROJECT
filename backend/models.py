@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from geoalchemy2 import Geometry
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .database import Base
 
@@ -44,8 +44,8 @@ class Deal(Base):
     min_price = Column(Float)
     
     quantity = Column(Integer)
-    closing_time = Column(DateTime)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    closing_time = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     
     is_active = Column(Boolean, default=True)
 

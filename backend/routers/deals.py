@@ -20,7 +20,7 @@ def create_deal(deal: schemas.DealCreate, background_tasks: BackgroundTasks, db:
         raise HTTPException(status_code=404, detail="Vendor not found")
 
     # Ensure closing time is in the future
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(timezone.utc)
     if deal.closing_time <= now:
         raise HTTPException(status_code=400, detail="Closing time must be in the future")
 
@@ -60,7 +60,7 @@ def create_deal(deal: schemas.DealCreate, background_tasks: BackgroundTasks, db:
 
 @router.get("/active", response_model=List[schemas.DealWithVendorResponse])
 def get_active_deals(db: Session = Depends(get_db)):
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(timezone.utc)
     
     # We would typically do a spatial query here to only return deals near the student,
     # but for simplicity we return all active deals that haven't closed yet.
@@ -79,7 +79,7 @@ def reserve_deal(request: schemas.ReserveRequest, db: Session = Depends(get_db))
     if not deal or not deal.is_active:
         raise HTTPException(status_code=404, detail="Deal not found or inactive")
         
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(timezone.utc)
     if deal.closing_time <= now:
         raise HTTPException(status_code=400, detail="Deal has expired")
 
