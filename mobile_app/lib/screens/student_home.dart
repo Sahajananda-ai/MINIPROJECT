@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import '../services/api_service.dart';
 class StudentHomeScreen extends StatelessWidget {
   const StudentHomeScreen({super.key});
 
@@ -36,14 +36,37 @@ class StudentHomeScreen extends StatelessWidget {
           // A little spacing
           const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
-          // The List of Mystery Boxes
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                return _buildMysteryBoxCard(context, index);
-              },
-              childCount: 5, // Show 5 dummy items for now
-            ),
+          // The List of Mystery Boxes from Backend
+          FutureBuilder<List<dynamic>>(
+            future: ApiService.getActiveDeals(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const SliverToBoxAdapter(
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              if (snapshot.hasError) {
+                return SliverToBoxAdapter(
+                  child: Center(child: Text('Error loading deals: ${snapshot.error}')),
+                );
+              }
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const SliverToBoxAdapter(
+                  child: Center(child: Text('No active deals right now.')),
+                );
+              }
+
+              final deals = snapshot.data!;
+              return SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final deal = deals[index];
+                    return _buildMysteryBoxCard(context, deal);
+                  },
+                  childCount: deals.length,
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -77,7 +100,12 @@ class StudentHomeScreen extends StatelessWidget {
   }
 
   // The premium UI for each Mystery Box card
-  Widget _buildMysteryBoxCard(BuildContext context, int index) {
+  Widget _buildMysteryBoxCard(BuildContext context, dynamic deal) {
+    // Safely extract data from the deal JSON
+    final originalValue = deal['original_value']?.toString() ?? '400';
+    final currentPrice = deal['start_price']?.toString() ?? '120';
+    final vendorName = deal['vendor']?['name'] ?? 'Fresh Bakery Surprise';
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
@@ -123,7 +151,7 @@ class StudentHomeScreen extends StatelessWidget {
                       children: [
                         Icon(Icons.access_time, color: Colors.white, size: 14),
                         SizedBox(width: 5),
-                        Text('Ends in 2h', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        Text('Active', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),
@@ -142,16 +170,16 @@ class StudentHomeScreen extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Fresh Bakery Surprise',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    Text(
+                      vendorName,
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 5),
                     Row(
                       children: [
                         Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
                         const SizedBox(width: 4),
-                        Text('0.8 km away', style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+                        Text('Nearby', style: TextStyle(color: Colors.grey[600], fontSize: 14)),
                       ],
                     ),
                   ],
@@ -162,16 +190,16 @@ class StudentHomeScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '₹400',
+                      '₹$originalValue',
                       style: TextStyle(
                         decoration: TextDecoration.lineThrough,
                         color: Colors.grey[400],
                         fontSize: 14,
                       ),
                     ),
-                    const Text(
-                      '₹120',
-                      style: TextStyle(
+                    Text(
+                      '₹$currentPrice',
+                      style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: Colors.green, // Highlights the massive discount!
