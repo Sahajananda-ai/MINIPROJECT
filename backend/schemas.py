@@ -7,11 +7,10 @@ class VendorBase(BaseModel):
     name: str = Field(..., example="Gupta Sweets & Bakery")
     fssai_license: str = Field(..., example="11519024000111")
     shop_category: str = Field(..., example="Bakery")
-    longitude: float = Field(..., description="GPS Longitude", example=77.2090)
-    latitude: float = Field(..., description="GPS Latitude", example=28.6139)
 
 class VendorCreate(VendorBase):
-    pass
+    longitude: float = Field(..., description="GPS Longitude", example=77.2090)
+    latitude: float = Field(..., description="GPS Latitude", example=28.6139)
 
 class VendorResponse(VendorBase):
     id: int
