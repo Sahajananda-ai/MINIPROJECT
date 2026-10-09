@@ -15,7 +15,7 @@ class Vendor(Base):
     
     # We use PostGIS 'POINT' geometry to store exact GPS coordinates (Longitude, Latitude)
     # spatial_index=True makes spatial queries (like 'find users within 2km') extremely fast
-    location = Column(Geometry(geometry_type='POINT', srid=4326), spatial_index=True)
+    location = Column(Geometry(geometry_type='POINT', srid=4326))
     
     rating = Column(Float, default=5.0)
     is_suspended = Column(Boolean, default=False)
@@ -31,7 +31,7 @@ class Student(Base):
     email = Column(String, unique=True, index=True)
     
     # Stores the student's last known location for geofencing notifications
-    last_location = Column(Geometry(geometry_type='POINT', srid=4326), spatial_index=True)
+    last_location = Column(Geometry(geometry_type='POINT', srid=4326))
 
 class Deal(Base):
     __tablename__ = "deals"
