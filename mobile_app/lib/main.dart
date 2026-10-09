@@ -23,7 +23,7 @@ class MysteryBoxApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
       ),
-      home: const VendorDashboardScreen(),
+      home: const OnboardingScreen(),
     );
   }
 }
