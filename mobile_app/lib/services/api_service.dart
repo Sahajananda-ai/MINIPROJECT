@@ -82,4 +82,26 @@ class ApiService {
       throw Exception('Failed to load deals');
     }
   }
+
+  /// Reserves a deal for a student (5 minute lock)
+  static Future<Map<String, dynamic>?> reserveDeal({
+    required int dealId,
+    required int studentId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/deals/reserve'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "deal_id": dealId,
+          "student_id": studentId,
+        }),
+      );
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      print("Reserve error: $e");
+      return null;
+    }
+  }
 }

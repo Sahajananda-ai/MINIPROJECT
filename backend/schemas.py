@@ -16,6 +16,8 @@ class VendorResponse(VendorBase):
     id: int
     rating: float
     is_suspended: bool
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
     class Config:
         from_attributes = True

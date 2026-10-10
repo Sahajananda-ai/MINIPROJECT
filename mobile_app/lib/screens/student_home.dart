@@ -70,32 +70,6 @@ class StudentHomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      
-      // Floating Bottom Navigation Bar for a modern feel
-      bottomNavigationBar: Container(
-        margin: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10)),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(30),
-          child: BottomNavigationBar(
-            showSelectedLabels: false,
-            showUnselectedLabels: false,
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Discover'),
-              BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Map'),
-              BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-            ],
-          ),
-        ),
-      ),
     );
   }
 

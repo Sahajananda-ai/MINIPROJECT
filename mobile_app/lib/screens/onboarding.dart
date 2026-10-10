@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'student_home.dart';
+import 'role_selection.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -92,7 +92,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             Navigator.pushReplacement(
                               context,
                               PageRouteBuilder(
-                                pageBuilder: (context, animation, secondaryAnimation) => const StudentHomeScreen(),
+                                pageBuilder: (context, animation, secondaryAnimation) => const RoleSelectionScreen(),
                                 transitionsBuilder: (context, animation, secondaryAnimation, child) {
                                   return FadeTransition(opacity: animation, child: child);
                                 },

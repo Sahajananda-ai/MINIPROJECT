@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from typing import List
 from sqlalchemy.orm import Session
+from sqlalchemy import func, select
 from datetime import datetime, timezone
 from .. import models, schemas
 from ..database import get_db
@@ -62,15 +63,35 @@ def create_deal(deal: schemas.DealCreate, background_tasks: BackgroundTasks, db:
 def get_active_deals(db: Session = Depends(get_db)):
     now = datetime.now(timezone.utc)
     
-    # We would typically do a spatial query here to only return deals near the student,
-    # but for simplicity we return all active deals that haven't closed yet.
     active_deals = db.query(models.Deal).filter(
         models.Deal.is_active == True,
         models.Deal.closing_time > now,
         models.Deal.quantity > 0
     ).all()
     
-    return active_deals
+    # Extract lat/lng from PostGIS binary location for each deal's vendor
+    results = []
+    for deal in active_deals:
+        vendor = deal.vendor
+        # Use SQLAlchemy to extract coordinates from PostGIS POINT
+        lng = db.execute(select(func.ST_X(vendor.location))).scalar()
+        lat = db.execute(select(func.ST_Y(vendor.location))).scalar()
+        
+        results.append({
+            **deal.__dict__,
+            "vendor": {
+                "id": vendor.id,
+                "name": vendor.name,
+                "fssai_license": vendor.fssai_license,
+                "shop_category": vendor.shop_category,
+                "rating": vendor.rating,
+                "is_suspended": vendor.is_suspended,
+                "longitude": lng,
+                "latitude": lat,
+            }
+        })
+    
+    return results
 
 @router.post("/reserve", response_model=schemas.ReserveResponse)
 def reserve_deal(request: schemas.ReserveRequest, db: Session = Depends(get_db)):
