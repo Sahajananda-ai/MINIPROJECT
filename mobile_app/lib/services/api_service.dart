@@ -104,4 +104,65 @@ class ApiService {
       return null;
     }
   }
+
+  /// Updates student's GPS location in PostGIS for spatial notifications
+  static Future<bool> updateStudentLocation({
+    required int studentId,
+    required double latitude,
+    required double longitude,
+  }) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/students/$studentId/location?latitude=$latitude&longitude=$longitude'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Location update error: $e");
+      return false;
+    }
+  }
+
+  /// Completes / redeems a reserved deal at pickup
+  static Future<bool> completeDeal({
+    required int dealId,
+    required int studentId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/deals/$dealId/complete'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({"student_id": studentId}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Complete deal error: $e");
+      return false;
+    }
+  }
+
+  /// Asks SaveBite AI for personalized surplus recommendations
+  static Future<Map<String, dynamic>?> getAiRecommendation({
+    String query = "best value",
+    double? maxBudget,
+    String? category,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/ai/recommend'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "query": query,
+          "max_budget": maxBudget,
+          "preferred_category": category,
+        }),
+      );
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+    } catch (e) {
+      print("AI recommendation error: $e");
+    }
+    return null;
+  }
 }

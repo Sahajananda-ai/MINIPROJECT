@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'student_home.dart';
 import 'student_map.dart';
+import 'student_orders.dart';
+import 'student_profile.dart';
 
 /// The main shell for the Student experience.
-/// Contains a working bottom navigation bar that switches between
-/// the Home (deal listing) and Map screens.
+/// Contains a working bottom navigation bar with 4 core views:
+/// 1. Discover / Deals Feed
+/// 2. Hyperlocal Interactive Map
+/// 3. My Pickups & Digital Passes
+/// 4. Profile & Sustainability Impact
 class StudentShell extends StatefulWidget {
   const StudentShell({super.key});
 
@@ -18,24 +23,25 @@ class _StudentShellState extends State<StudentShell> {
   final List<Widget> _screens = const [
     StudentHomeScreen(),
     StudentMapScreen(),
-    _ProfilePlaceholder(),
+    StudentOrdersScreen(),
+    StudentProfileScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        child: _screens[_currentIndex],
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screens,
       ),
       bottomNavigationBar: Container(
-        margin: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
+        margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withOpacity(0.08),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -50,73 +56,38 @@ class _StudentShellState extends State<StudentShell> {
                 _currentIndex = index;
               });
             },
+            type: BottomNavigationBarType.fixed,
             showSelectedLabels: true,
-            showUnselectedLabels: false,
+            showUnselectedLabels: true,
+            selectedFontSize: 12,
+            unselectedFontSize: 11,
             elevation: 0,
-            backgroundColor: Colors.transparent,
-            selectedItemColor: Theme.of(context).colorScheme.primary,
+            backgroundColor: Colors.white,
+            selectedItemColor: const Color(0xFF006C5B),
             unselectedItemColor: Colors.grey[400],
             items: const [
               BottomNavigationBarItem(
                 icon: Icon(Icons.explore_rounded),
+                activeIcon: Icon(Icons.explore),
                 label: 'Discover',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.map_rounded),
-                label: 'Map',
+                icon: Icon(Icons.map_outlined),
+                activeIcon: Icon(Icons.map_rounded),
+                label: 'Radar Map',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.person_rounded),
-                label: 'Profile',
+                icon: Icon(Icons.confirmation_number_outlined),
+                activeIcon: Icon(Icons.confirmation_number_rounded),
+                label: 'My Pickups',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.eco_outlined),
+                activeIcon: Icon(Icons.eco_rounded),
+                label: 'Impact',
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ProfilePlaceholder extends StatelessWidget {
-  const _ProfilePlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: const Text('Profile', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.person_rounded,
-                size: 64,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Student Profile',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Order history, settings & more\ncoming soon!',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 15, color: Colors.grey[600]),
-            ),
-          ],
         ),
       ),
     );

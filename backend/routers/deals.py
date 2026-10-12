@@ -22,7 +22,10 @@ def create_deal(deal: schemas.DealCreate, background_tasks: BackgroundTasks, db:
 
     # Ensure closing time is in the future
     now = datetime.now(timezone.utc)
-    if deal.closing_time <= now:
+    closing_time = deal.closing_time
+    if closing_time.tzinfo is None:
+        closing_time = closing_time.replace(tzinfo=timezone.utc)
+    if closing_time <= now:
         raise HTTPException(status_code=400, detail="Closing time must be in the future")
 
     # Create the deal in PostgreSQL
@@ -32,18 +35,18 @@ def create_deal(deal: schemas.DealCreate, background_tasks: BackgroundTasks, db:
         start_price=deal.start_price,
         min_price=deal.min_price,
         quantity=deal.quantity,
-        closing_time=deal.closing_time
+        closing_time=closing_time
     )
     db.add(new_deal)
     db.commit()
     db.refresh(new_deal)
 
     # Calculate TTL for Redis (Time remaining in seconds)
-    time_remaining = (deal.closing_time - now).total_seconds()
+    time_remaining = max(60, int((closing_time - now).total_seconds()))
 
     # Store inventory count in Redis with TTL so it auto-expires when the shop closes
     redis_key = f"deal_inventory:{new_deal.id}"
-    redis_client.set(redis_key, deal.quantity, ex=int(time_remaining))
+    redis_client.set(redis_key, deal.quantity, ex=time_remaining)
 
     # --- THE MISSING LINK: SPATIAL GEOFENCING ---
     # Find all students within 2km (2000 meters)
@@ -101,11 +104,33 @@ def reserve_deal(request: schemas.ReserveRequest, db: Session = Depends(get_db))
         raise HTTPException(status_code=404, detail="Deal not found or inactive")
         
     now = datetime.now(timezone.utc)
-    if deal.closing_time <= now:
+    closing_time = deal.closing_time
+    if closing_time and closing_time.tzinfo is None:
+        closing_time = closing_time.replace(tzinfo=timezone.utc)
+
+    if closing_time and closing_time <= now:
         raise HTTPException(status_code=400, detail="Deal has expired")
 
-    # 2. Redis Inventory Check (Atomic decrement)
+    # 2. Check if student already has an active lock (allow smooth re-entry into checkout)
+    lock_key = f"deal_reserve:{deal.id}:{request.student_id}"
+    existing_lock = redis_client.get(lock_key)
+    if existing_lock:
+        ttl = redis_client.ttl(lock_key)
+        current_price = decay_pricing.calculate_decay_price(deal)
+        return schemas.ReserveResponse(
+            success=True,
+            message="Active reservation found. You have time remaining to complete payment.",
+            reserved_price=current_price,
+            expires_in_seconds=max(ttl, 1) if ttl and ttl > 0 else 300
+        )
+
+    # 3. Redis Inventory Check (Atomic decrement)
     inventory_key = f"deal_inventory:{deal.id}"
+    # If key missing in Redis (e.g., container restart), initialize from Postgres
+    if not redis_client.exists(inventory_key):
+        ttl_seconds = max(60, int((closing_time - now).total_seconds())) if closing_time else 3600
+        redis_client.set(inventory_key, deal.quantity, ex=ttl_seconds)
+
     new_quantity = redis_client.decr(inventory_key)
     
     if new_quantity < 0:
@@ -113,9 +138,8 @@ def reserve_deal(request: schemas.ReserveRequest, db: Session = Depends(get_db))
         redis_client.incr(inventory_key)
         raise HTTPException(status_code=400, detail="Deal is completely sold out")
         
-    # 3. Create Redis Lock for this specific student and deal (5 minute TTL)
+    # 4. Create Redis Lock for this specific student and deal (5 minute TTL)
     # The student now has 5 minutes to complete Razorpay payment
-    lock_key = f"deal_reserve:{deal.id}:{request.student_id}"
     lock_acquired = redis_client.set(lock_key, "LOCKED", ex=300, nx=True)
     
     if not lock_acquired:
@@ -123,7 +147,7 @@ def reserve_deal(request: schemas.ReserveRequest, db: Session = Depends(get_db))
         redis_client.incr(inventory_key)
         raise HTTPException(status_code=400, detail="You already have an active reservation for this deal")
         
-    # 4. Calculate the current dynamic price
+    # 5. Calculate the current dynamic price
     current_price = decay_pricing.calculate_decay_price(deal)
     
     return schemas.ReserveResponse(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import '../services/order_manager.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final dynamic deal;
@@ -77,7 +78,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       _isProcessingPayment = true;
     });
 
-    // Mock payment delay
+    // Mock UPI/payment gateway delay
     await Future.delayed(const Duration(seconds: 2));
 
     if (!mounted) return;
@@ -88,32 +89,84 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     
     _timer?.cancel();
 
+    // Register active order
+    final vendor = widget.deal['vendor'] ?? {};
+    final paidPrice = (widget.reservation['reserved_price'] as num?)?.toDouble() ?? 
+        (widget.deal['start_price'] as num?)?.toDouble() ?? 120.0;
+    final origVal = (widget.deal['original_value'] as num?)?.toDouble() ?? 400.0;
+    final closing = DateTime.tryParse(widget.deal['closing_time']?.toString() ?? '') ?? 
+        DateTime.now().add(const Duration(hours: 3));
+
+    OrderManager().addOrder(
+      dealId: widget.deal['id'] ?? 1,
+      studentId: 1,
+      vendorName: vendor['name'] ?? 'Mystery Box Partner',
+      shopCategory: vendor['shop_category'] ?? 'Surplus Bag',
+      paidPrice: paidPrice,
+      originalValue: origVal,
+      closingTime: closing,
+    );
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text("Payment Successful! 🎉"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle_rounded, color: Colors.green, size: 28),
+            SizedBox(width: 10),
+            Text("Payment Confirmed! 🎉", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Icon(Icons.check_circle, color: Colors.green, size: 60),
-            const SizedBox(height: 16),
-            const Text("Show this screen to the vendor to pickup your Mystery Box."),
-            const SizedBox(height: 16),
+            const Text(
+              "Your Mystery Box is officially reserved!",
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(16),
-              color: Colors.grey[200],
-              child: const Icon(Icons.qr_code_2, size: 100),
-            )
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.qr_code_2_rounded, size: 120, color: Color(0xFF006C5B)),
+                  const SizedBox(height: 8),
+                  Text(
+                    "PASS: MB-${widget.deal['id']}-LIVE",
+                    style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "Show this QR pass or PIN at ${vendor['name'] ?? 'the store'} during pickup.",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+            ),
           ],
         ),
         actions: [
-          TextButton(
+          ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop(); // Close dialog
-              Navigator.of(context).pop(); // Go back to map
+              Navigator.of(context).pop(); // Return to Student home
             },
-            child: const Text("Done"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF006C5B),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text("View My Orders"),
           ),
         ],
       ),
