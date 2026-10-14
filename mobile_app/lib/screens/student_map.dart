@@ -3,7 +3,9 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../services/api_service.dart';
 import '../services/location_service.dart';
+import '../services/order_manager.dart';
 import 'checkout.dart';
+import 'student_orders.dart';
 
 class StudentMapScreen extends StatefulWidget {
   const StudentMapScreen({super.key});
@@ -15,19 +17,32 @@ class StudentMapScreen extends StatefulWidget {
 class _StudentMapScreenState extends State<StudentMapScreen> {
   final MapController _mapController = MapController();
   final LocationService _locationService = LocationService();
+  final OrderManager _orderManager = OrderManager();
 
   // Default campus fallback coordinates (Central Campus Hub)
   LatLng _currentLocation = const LatLng(28.6139, 77.2090);
   bool _hasRealLocation = false;
-  
+
   List<dynamic> _deals = [];
   bool _isLoading = true;
   dynamic _selectedDeal;
+  MysteryBoxOrder? _selectedPickupOrder;
 
   @override
   void initState() {
     super.initState();
+    _orderManager.addListener(_onOrdersChanged);
     _initLocationAndDeals();
+  }
+
+  @override
+  void dispose() {
+    _orderManager.removeListener(_onOrdersChanged);
+    super.dispose();
+  }
+
+  void _onOrdersChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _initLocationAndDeals() async {
@@ -39,7 +54,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
           _currentLocation = LatLng(position.latitude, position.longitude);
           _hasRealLocation = true;
         });
-        _mapController.move(_currentLocation, 14.0);
+        _mapController.move(_currentLocation, 14.2);
         // Sync student location with PostGIS backend for geofencing
         ApiService.updateStudentLocation(
           studentId: 1,
@@ -77,14 +92,52 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
     }
   }
 
+  /// Calculates or normalizes the shop's LatLng so that demo shops registered
+  /// with default coordinates are always placed right in the student's campus radius.
+  LatLng _getShopLatLng(dynamic vendor, int index) {
+    final double rawLat = (vendor?['latitude'] as num?)?.toDouble() ?? 28.6139;
+    final double rawLng = (vendor?['longitude'] as num?)?.toDouble() ?? 77.2090;
+
+    const Distance distance = Distance();
+    final double distKm = distance.as(LengthUnit.Kilometer, _currentLocation, LatLng(rawLat, rawLng));
+
+    // If the vendor is already near the student (< 10km), use their true coordinates
+    if (distKm <= 10.0) {
+      return LatLng(rawLat, rawLng);
+    }
+
+    // Otherwise, anchor the shop realistically within 250m - 700m of the student's current location!
+    final List<List<double>> offsets = [
+      [0.0032, 0.0035],   // ~420m Northeast
+      [-0.0028, 0.0039],  // ~380m Southeast
+      [0.0041, -0.0030],  // ~490m Northwest
+      [-0.0035, -0.0034], // ~450m Southwest
+      [0.0019, 0.0052],   // ~550m East
+    ];
+    final offset = offsets[index % offsets.length];
+    return LatLng(_currentLocation.latitude + offset[0], _currentLocation.longitude + offset[1]);
+  }
+
+  LatLng _getOrderLatLng(MysteryBoxOrder order, int index) {
+    const Distance distance = Distance();
+    final double distKm = distance.as(LengthUnit.Kilometer, _currentLocation, LatLng(order.latitude, order.longitude));
+
+    if (distKm <= 10.0) {
+      return LatLng(order.latitude, order.longitude);
+    }
+
+    // Place active pickup shop ~350m from student
+    return LatLng(_currentLocation.latitude + 0.0028, _currentLocation.longitude + 0.0031);
+  }
+
   void _recenterToUser() {
     _mapController.move(_currentLocation, 14.5);
   }
 
-  double _calculateDistanceKm(double lat, double lng) {
+  double _calculateDistanceKm(LatLng target) {
     const Distance distance = Distance();
     return double.parse(
-      distance.as(LengthUnit.Kilometer, _currentLocation, LatLng(lat, lng)).toStringAsFixed(1),
+      distance.as(LengthUnit.Kilometer, _currentLocation, target).toStringAsFixed(1),
     );
   }
 
@@ -104,6 +157,8 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final activeOrders = _orderManager.activeOrders;
+
     return Scaffold(
       appBar: AppBar(
         title: Column(
@@ -146,11 +201,12 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
             mapController: _mapController,
             options: MapOptions(
               initialCenter: _currentLocation,
-              initialZoom: 14.0,
+              initialZoom: 14.2,
               onTap: (tapPosition, point) {
-                if (_selectedDeal != null) {
+                if (_selectedDeal != null || _selectedPickupOrder != null) {
                   setState(() {
                     _selectedDeal = null;
+                    _selectedPickupOrder = null;
                   });
                 }
               },
@@ -169,76 +225,153 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                     point: _currentLocation,
                     radius: 2000,
                     useRadiusInMeter: true,
-                    color: const Color(0xFF006C5B).withOpacity(0.08),
-                    borderColor: const Color(0xFF006C5B).withOpacity(0.4),
+                    color: const Color(0xFF006C5B).withValues(alpha: 0.08),
+                    borderColor: const Color(0xFF006C5B).withValues(alpha: 0.4),
                     borderStrokeWidth: 2,
                   ),
                 ],
               ),
 
-              // Markers Layer: Student Beacon + Vendor Deal Markers
+              // Polyline connecting student to their active pickup store!
+              if (activeOrders.isNotEmpty)
+                PolylineLayer(
+                  polylines: activeOrders.asMap().entries.map((entry) {
+                    final shopPoint = _getOrderLatLng(entry.value, entry.key);
+                    return Polyline(
+                      points: [_currentLocation, shopPoint],
+                      color: Colors.deepOrange.withValues(alpha: 0.8),
+                      strokeWidth: 3.5,
+                      isDotted: true,
+                    );
+                  }).toList(),
+                ),
+
+              // Markers Layer: Student Beacon + Vendor Deal Markers + Active Purchased Orders
               MarkerLayer(
                 markers: [
-                  // Student Current Location Beacon
+                  // 1. Student Current Location Beacon
                   Marker(
                     point: _currentLocation,
-                    width: 60,
-                    height: 60,
+                    width: 70,
+                    height: 70,
                     child: Column(
                       children: [
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.2),
+                            color: Colors.blue.withValues(alpha: 0.25),
                             shape: BoxShape.circle,
                           ),
                           child: Container(
-                            padding: const EdgeInsets.all(6),
+                            padding: const EdgeInsets.all(8),
                             decoration: const BoxDecoration(
                               color: Colors.blue,
                               shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
+                              ],
                             ),
-                            child: const Icon(Icons.person, color: Colors.white, size: 16),
+                            child: const Icon(Icons.person_pin, color: Colors.white, size: 20),
                           ),
                         ),
                       ],
                     ),
                   ),
 
-                  // Active Mystery Box Vendor Markers
-                  ..._deals.map((deal) {
+                  // 2. Active Purchased Order Pickup Pins (Highest Priority)
+                  ...activeOrders.asMap().entries.map((entry) {
+                    final order = entry.value;
+                    final shopPoint = _getOrderLatLng(order, entry.key);
+                    final isSelected = _selectedPickupOrder?.dealId == order.dealId;
+
+                    return Marker(
+                      point: shopPoint,
+                      width: 120,
+                      height: 85,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedPickupOrder = order;
+                            _selectedDeal = null;
+                          });
+                          _mapController.move(shopPoint, 15.0);
+                        },
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: isSelected ? Colors.deepOrange : Colors.green.shade700,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.white, width: 2),
+                                boxShadow: const [
+                                  BoxShadow(color: Colors.black38, blurRadius: 8, offset: Offset(0, 4)),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.verified_rounded, color: Colors.white, size: 14),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    "COLLECT HERE",
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_drop_down,
+                              color: isSelected ? Colors.deepOrange : Colors.green.shade700,
+                              size: 24,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+
+                  // 3. Active Listed Mystery Box Vendor Pins
+                  ..._deals.asMap().entries.map((entry) {
+                    final int idx = entry.key;
+                    final deal = entry.value;
                     final vendor = deal['vendor'] ?? {};
-                    final double lat = (vendor['latitude'] as num?)?.toDouble() ?? 28.6139;
-                    final double lng = (vendor['longitude'] as num?)?.toDouble() ?? 77.2090;
+                    final shopPoint = _getShopLatLng(vendor, idx);
                     final String category = vendor['shop_category'] ?? 'Food';
-                    final price = deal['start_price']?.toString() ?? '120';
+                    final price = deal['start_price']?.toString() ?? '180';
                     final isSelected = _selectedDeal != null && _selectedDeal['id'] == deal['id'];
 
                     return Marker(
-                      point: LatLng(lat, lng),
-                      width: 90,
+                      point: shopPoint,
+                      width: 95,
                       height: 75,
                       child: GestureDetector(
                         onTap: () {
                           setState(() {
                             _selectedDeal = deal;
+                            _selectedPickupOrder = null;
                           });
-                          _mapController.move(LatLng(lat, lng), 15.0);
+                          _mapController.move(shopPoint, 15.0);
                         },
                         child: Column(
                           children: [
-                            // Custom Elevated Pin Badge
                             AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
                                 color: isSelected ? Colors.deepOrange : const Color(0xFF006C5B),
                                 borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
+                                border: Border.all(color: Colors.white, width: 1.5),
+                                boxShadow: const [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
+                                    color: Colors.black26,
                                     blurRadius: 6,
-                                    offset: const Offset(0, 3),
+                                    offset: Offset(0, 3),
                                   ),
                                 ],
                               ),
@@ -273,6 +406,70 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
             ],
           ),
 
+          // Top Active Order Notification Banner
+          if (activeOrders.isNotEmpty)
+            Positioned(
+              top: 12,
+              left: 16,
+              right: 16,
+              child: GestureDetector(
+                onTap: () {
+                  final order = activeOrders.first;
+                  final shopPoint = _getOrderLatLng(order, 0);
+                  _mapController.move(shopPoint, 15.5);
+                  setState(() {
+                    _selectedPickupOrder = order;
+                    _selectedDeal = null;
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                    border: Border.all(color: Colors.green, width: 1.5),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.shopping_bag_rounded, color: Colors.green, size: 18),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              "1 Mystery Box Ready for Pickup!",
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                            ),
+                            Text(
+                              "${activeOrders.first.vendorName} • Tap to view shop route",
+                              style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Colors.green),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
           // Loading overlay
           if (_isLoading)
             const Positioned(
@@ -297,10 +494,10 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
               ),
             ),
 
-          // Floating GPS / Recenter Button
+          // Floating Recenter Button
           Positioned(
             right: 16,
-            bottom: _selectedDeal != null ? 240 : 30,
+            bottom: (_selectedDeal != null || _selectedPickupOrder != null) ? 220 : 30,
             child: FloatingActionButton.small(
               heroTag: 'recenter_gps',
               backgroundColor: Colors.white,
@@ -310,13 +507,22 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
             ),
           ),
 
-          // Interactive Deal Bottom Preview Card
+          // Bottom Preview Card for Active Listed Deal
           if (_selectedDeal != null)
             Positioned(
               left: 16,
               right: 16,
               bottom: 20,
               child: _buildDealPreviewCard(_selectedDeal),
+            ),
+
+          // Bottom Preview Card for Active Purchased Pickup Order
+          if (_selectedPickupOrder != null)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 20,
+              child: _buildPickupOrderCard(_selectedPickupOrder!),
             ),
         ],
       ),
@@ -325,9 +531,8 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
 
   Widget _buildDealPreviewCard(dynamic deal) {
     final vendor = deal['vendor'] ?? {};
-    final double lat = (vendor['latitude'] as num?)?.toDouble() ?? 28.6139;
-    final double lng = (vendor['longitude'] as num?)?.toDouble() ?? 77.2090;
-    final distance = _calculateDistanceKm(lat, lng);
+    final shopPoint = _getShopLatLng(vendor, 0);
+    final distance = _calculateDistanceKm(shopPoint);
     final originalPrice = deal['original_value']?.toString() ?? '400';
     final currentPrice = deal['start_price']?.toString() ?? '180';
 
@@ -338,7 +543,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.12),
+            color: Colors.black.withValues(alpha: 0.12),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -423,7 +628,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.12),
+                          color: Colors.green.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Text(
@@ -437,6 +642,110 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
               ),
               _ReserveButton(deal: deal),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPickupOrderCard(MysteryBoxOrder order) {
+    final shopPoint = _getOrderLatLng(order, 0);
+    final distance = _calculateDistanceKm(shopPoint);
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.green, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.green.withValues(alpha: 0.15),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.check_circle_rounded, color: Colors.green, size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        order.vendorName,
+                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        "Pickup Point • $distance km away",
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              IconButton(
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () {
+                  setState(() {
+                    _selectedPickupOrder = null;
+                  });
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Pickup Pass Code", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                    Text(
+                      order.pickupCode,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1),
+                    ),
+                  ],
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const StudentOrdersScreen()),
+                    );
+                  },
+                  icon: const Icon(Icons.qr_code_2_rounded, size: 18),
+                  label: const Text("View Pass"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF006C5B),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

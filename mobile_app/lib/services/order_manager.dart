@@ -10,6 +10,8 @@ class MysteryBoxOrder {
   final String pickupCode;
   final DateTime reservedAt;
   final DateTime closingTime;
+  final double latitude;
+  final double longitude;
   bool isCollected;
 
   MysteryBoxOrder({
@@ -22,6 +24,8 @@ class MysteryBoxOrder {
     required this.pickupCode,
     required this.reservedAt,
     required this.closingTime,
+    this.latitude = 28.6139,
+    this.longitude = 77.2090,
     this.isCollected = false,
   });
 }
@@ -43,6 +47,8 @@ class OrderManager extends ChangeNotifier {
       pickupCode: "RESCUE-9281",
       reservedAt: DateTime.now().subtract(const Duration(days: 1)),
       closingTime: DateTime.now().subtract(const Duration(hours: 20)),
+      latitude: 28.6150,
+      longitude: 77.2110,
       isCollected: true,
     ),
   ];
@@ -71,6 +77,8 @@ class OrderManager extends ChangeNotifier {
     required double paidPrice,
     required double originalValue,
     required DateTime closingTime,
+    double? latitude,
+    double? longitude,
   }) {
     final code = "MB-$dealId-${1000 + (DateTime.now().millisecondsSinceEpoch % 9000)}";
     final order = MysteryBoxOrder(
@@ -83,10 +91,35 @@ class OrderManager extends ChangeNotifier {
       pickupCode: code,
       reservedAt: DateTime.now(),
       closingTime: closingTime,
+      latitude: latitude ?? 28.6139,
+      longitude: longitude ?? 77.2090,
       isCollected: false,
     );
     _orders.insert(0, order);
     notifyListeners();
+  }
+
+  /// Finds an order by full code (e.g. MB-41-2891), deal ID, or short PIN
+  MysteryBoxOrder? findOrderByCodeOrId(String input) {
+    final trimmed = input.trim().toUpperCase();
+    if (trimmed.isEmpty) return null;
+
+    for (var o in _orders) {
+      if (o.pickupCode.toUpperCase() == trimmed) return o;
+      if (o.dealId.toString() == trimmed) return o;
+      if (trimmed.contains(o.dealId.toString())) return o;
+    }
+    return null;
+  }
+
+  bool markOrderCollectedByCode(String codeOrId) {
+    final order = findOrderByCodeOrId(codeOrId);
+    if (order != null) {
+      order.isCollected = true;
+      notifyListeners();
+      return true;
+    }
+    return false;
   }
 
   void markOrderCollected(int dealId) {

@@ -162,18 +162,21 @@ def complete_deal(deal_id: int, request: schemas.CompleteDealRequest, db: Sessio
     # 1. Verify deal exists
     deal = db.query(models.Deal).filter(models.Deal.id == deal_id).first()
     if not deal:
-        raise HTTPException(status_code=404, detail="Deal not found")
+        raise HTTPException(status_code=404, detail=f"Deal #{deal_id} not found")
 
-    # 2. Check if a valid lock exists (meaning the student paid and the lock hasn't expired)
+    # 2. Clear Redis reservation lock if still active
     lock_key = f"deal_reserve:{deal.id}:{request.student_id}"
-    lock_status = redis_client.get(lock_key)
-    
-    if not lock_status:
-        raise HTTPException(status_code=400, detail="No active reservation found for this student. The reservation may have expired.")
-
-    # 3. Mark the lock as completed/deleted since pickup is done
     redis_client.delete(lock_key)
 
-    # Note: In a production app, we would log this transaction in a new table (e.g., Transactions or Pickups)
-    
-    return {"success": True, "message": "Pickup confirmed successfully"}
+    # 3. Decrement deal quantity in database if still available
+    if deal.quantity > 0:
+        deal.quantity -= 1
+        db.commit()
+
+    return {
+        "success": True, 
+        "message": f"Pickup confirmed successfully for Deal #{deal.id} ({deal.vendor.name})!",
+        "deal_id": deal.id,
+        "vendor_id": deal.vendor_id,
+        "vendor_name": deal.vendor.name
+    }

@@ -76,7 +76,8 @@ class ReserveResponse(BaseModel):
 
 # --- PICKUP & ACCOUNTABILITY SCHEMAS ---
 class CompleteDealRequest(BaseModel):
-    student_id: int
+    student_id: int = 1
+    pickup_code: Optional[str] = None
 
 class RateVendorRequest(BaseModel):
     rating: float = Field(..., ge=1.0, le=5.0, description="Rating from 1 to 5 stars")

@@ -97,6 +97,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final closing = DateTime.tryParse(widget.deal['closing_time']?.toString() ?? '') ?? 
         DateTime.now().add(const Duration(hours: 3));
 
+    final lat = (vendor['latitude'] as num?)?.toDouble();
+    final lng = (vendor['longitude'] as num?)?.toDouble();
+
     OrderManager().addOrder(
       dealId: widget.deal['id'] ?? 1,
       studentId: 1,
@@ -105,6 +108,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       paidPrice: paidPrice,
       originalValue: origVal,
       closingTime: closing,
+      latitude: lat,
+      longitude: lng,
     );
 
     showDialog(
