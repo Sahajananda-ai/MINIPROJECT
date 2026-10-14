@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/onboarding.dart';
-import 'screens/vendor_dashboard.dart';
+import 'widgets/mobile_frame_wrapper.dart';
 
 void main() {
   runApp(const MysteryBoxApp());
@@ -12,17 +12,20 @@ class MysteryBoxApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Mystery Box',
+      title: 'SaveBite - Mystery Box Rescue',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        fontFamily: 'Inter', // Assuming Inter or system font for a clean modern look
+        fontFamily: 'Inter',
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF006C5B), // Too Good To Go style deep rich green/teal
           primary: const Color(0xFF006C5B),
           brightness: Brightness.light,
         ),
       ),
+      builder: (context, child) {
+        return MobileFrameWrapper(child: child ?? const SizedBox.shrink());
+      },
       home: const OnboardingScreen(),
     );
   }
