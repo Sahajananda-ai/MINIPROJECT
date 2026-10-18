@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'dart:async';
 import '../services/order_manager.dart';
 import 'student_shell.dart';
@@ -23,6 +24,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Timer? _timer;
   bool _isProcessingPayment = false;
   String _selectedPaymentMethod = "UPI";
+
+  // Too Good To Go palette
+  static const Color _cream = Color(0xFFF5F0E8);
+  static const Color _tealPrimary = Color(0xFF006C5B);
 
   @override
   void initState() {
@@ -308,10 +313,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final isUrgent = _timeLeft < 60;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: _cream,
       appBar: AppBar(
-        title: const Text("Reserve Mystery Box", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF006C5B),
+        title: Text(
+          "Reserve Mystery Box",
+          style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold, fontSize: 20),
+        ),
+        backgroundColor: _tealPrimary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),

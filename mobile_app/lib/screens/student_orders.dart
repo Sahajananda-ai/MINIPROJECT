@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/order_manager.dart';
 import '../services/api_service.dart';
 import 'student_shell.dart';
@@ -12,6 +13,12 @@ class StudentOrdersScreen extends StatefulWidget {
 
 class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
   final OrderManager _orderManager = OrderManager();
+
+  // Too Good To Go palette
+  static const Color _cream = Color(0xFFF5F0E8);
+  static const Color _tealPrimary = Color(0xFF006C5B);
+  static const Color _warmAmber = Color(0xFFFF8C42);
+  static const Color _charcoal = Color(0xFF2D2D2D);
 
   @override
   void initState() {
@@ -33,23 +40,39 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Confirm Pickup"),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          "Confirm Pickup",
+          style: GoogleFonts.playfairDisplay(
+            fontWeight: FontWeight.bold,
+            color: _charcoal,
+          ),
+        ),
         content: Text(
-          "Did you collect your Mystery Box from ${order.vendorName}?",
+          "Did you collect your delicious Mystery Box from ${order.vendorName}?",
+          style: GoogleFonts.inter(color: Colors.black87, height: 1.4),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text("Cancel"),
+            child: Text(
+              "Cancel",
+              style: GoogleFonts.inter(color: Colors.grey[700], fontWeight: FontWeight.w600),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF006C5B),
+              backgroundColor: _tealPrimary,
               foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             ),
-            child: const Text("Yes, Collected!"),
+            child: Text(
+              "Yes, Collected! 🌱",
+              style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -61,8 +84,21 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            backgroundColor: const Color(0xFF006C5B),
-            content: Text("🎉 Mystery Box collected from ${order.vendorName}! You saved ₹${(order.originalValue - order.paidPrice).toStringAsFixed(0)}!"),
+            backgroundColor: _tealPrimary,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            content: Row(
+              children: [
+                const Icon(Icons.celebration_rounded, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    "High five! You just saved food from being wasted 🎉",
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       }
@@ -75,41 +111,60 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
     final pastOrders = _orderManager.completedOrders;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: _cream,
       appBar: AppBar(
-        title: const Text(
-          'My Pickups & Passes',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          'My Food Rescues',
+          style: GoogleFonts.playfairDisplay(
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+          ),
         ),
-        backgroundColor: const Color(0xFF006C5B),
+        backgroundColor: _tealPrimary,
         foregroundColor: Colors.white,
         elevation: 0,
+        centerTitle: false,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Active Pickups Section
+            // Active Pickups Section Header
             Row(
               children: [
                 Container(
                   width: 10,
                   height: 10,
                   decoration: const BoxDecoration(
-                    color: Colors.green,
+                    color: _warmAmber,
                     shape: BoxShape.circle,
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   "Ready for Pickup",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: _charcoal,
+                  ),
                 ),
                 const Spacer(),
-                Text(
-                  "${activeOrders.length} active",
-                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _tealPrimary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    "${activeOrders.length} active",
+                    style: GoogleFonts.inter(
+                      color: _tealPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -118,36 +173,61 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
             if (activeOrders.isEmpty)
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(28),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.grey[200]!),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.inventory_2_outlined, size: 50, color: Colors.grey[400]),
-                    const SizedBox(height: 12),
-                    const Text(
-                      "No Active Pickups",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: _warmAmber.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.takeout_dining_rounded, size: 36, color: _warmAmber),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      "No Active Pickups Right Now",
+                      style: GoogleFonts.playfairDisplay(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: _charcoal,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      "Reserve a mystery box from the Discover or Map tab to generate a digital pickup pass.",
+                      "Surplus meals from campus bakeries & cafes are waiting for you at up to 70% off!",
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                      style: GoogleFonts.inter(color: Colors.black54, fontSize: 13, height: 1.4),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     ElevatedButton.icon(
                       onPressed: () => StudentShell.switchTab(0),
-                      icon: const Icon(Icons.explore_outlined, size: 18),
-                      label: const Text("Explore Mystery Boxes"),
+                      icon: const Icon(Icons.explore_rounded, size: 18),
+                      label: Text(
+                        "Explore Mystery Boxes",
+                        style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+                      ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF006C5B),
+                        backgroundColor: _tealPrimary,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                       ),
                     ),
                   ],
@@ -156,27 +236,39 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
             else
               ...activeOrders.map((order) => _buildActiveOrderCard(order)),
 
-            const SizedBox(height: 30),
+            const SizedBox(height: 32),
 
-            // Past Pickups History
-            const Text(
-              "Rescued Boxes History",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            // Past Pickups History Header
+            Row(
+              children: [
+                const Icon(Icons.eco_rounded, size: 20, color: _tealPrimary),
+                const SizedBox(width: 8),
+                Text(
+                  "Rescued Boxes Impact",
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: _charcoal,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
 
             if (pastOrders.isEmpty)
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
                 ),
                 child: Center(
                   child: Text(
-                    "Your completed food rescues will appear here.",
-                    style: TextStyle(color: Colors.grey[500]),
+                    "Your completed food rescues and CO₂ savings will appear here.",
+                    style: GoogleFonts.inter(color: Colors.black45, fontSize: 13),
+                    textAlign: TextAlign.center,
                   ),
                 ),
               )
@@ -192,50 +284,58 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
     final savings = (order.originalValue - order.paidPrice).toStringAsFixed(0);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(26),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF006C5B).withValues(alpha: 0.08),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
           ),
         ],
-        border: Border.all(color: const Color(0xFF006C5B).withValues(alpha: 0.3), width: 1.5),
+        border: Border.all(color: _tealPrimary.withValues(alpha: 0.2), width: 1.5),
       ),
       child: Column(
         children: [
-          // Header
+          // Banner strip
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
-              color: const Color(0xFF006C5B).withValues(alpha: 0.08),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+              color: _tealPrimary.withValues(alpha: 0.08),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.timer_outlined, size: 18, color: Color(0xFF006C5B)),
-                    const SizedBox(width: 6),
+                    const Icon(Icons.timer_outlined, size: 18, color: _tealPrimary),
+                    const SizedBox(width: 8),
                     Text(
                       "Pickup before ${order.closingTime.hour}:${order.closingTime.minute.toString().padLeft(2, '0')}",
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF006C5B)),
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.w700,
+                        color: _tealPrimary,
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: Colors.green,
+                    color: _warmAmber,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     "Save ₹$savings",
-                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ],
@@ -249,92 +349,113 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          order.vendorName,
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          "Surplus Box • ${order.shopCategory}",
-                          style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                        ),
-                      ],
-                    ),
-                    Text(
-                      "₹${order.paidPrice.toStringAsFixed(0)}",
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF006C5B),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-                const Divider(),
-                const SizedBox(height: 12),
-
-                // Digital Pickup QR & Code
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[300]!),
-                      ),
-                      child: const Icon(Icons.qr_code_2_rounded, size: 64, color: Color(0xFF006C5B)),
-                    ),
-                    const SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            "Pickup Verification Code",
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                          const SizedBox(height: 2),
                           Text(
-                            order.pickupCode,
-                            style: const TextStyle(
-                              fontSize: 18,
+                            order.vendorName,
+                            style: GoogleFonts.playfairDisplay(
+                              fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              letterSpacing: 1.5,
-                              color: Colors.black87,
+                              color: _charcoal,
                             ),
                           ),
                           const SizedBox(height: 4),
-                          const Text(
-                            "Show this code or scan QR at the counter",
-                            style: TextStyle(fontSize: 11, color: Colors.grey),
+                          Text(
+                            "Surplus Box • ${order.shopCategory}",
+                            style: GoogleFonts.inter(color: Colors.black54, fontSize: 13),
                           ),
                         ],
+                      ),
+                    ),
+                    Text(
+                      "₹${order.paidPrice.toStringAsFixed(0)}",
+                      style: GoogleFonts.inter(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: _tealPrimary,
                       ),
                     ),
                   ],
                 ),
 
                 const SizedBox(height: 16),
+                Divider(color: Colors.grey.withValues(alpha: 0.2)),
+                const SizedBox(height: 12),
 
-                // Dual Action Buttons: View Route on Radar Map + Collected confirmation
+                // Digital Pickup QR & Code Pass
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: _cream,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+                        ),
+                        child: const Icon(Icons.qr_code_2_rounded, size: 56, color: _tealPrimary),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Pickup Pass Code",
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                color: Colors.black54,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              order.pickupCode,
+                              style: GoogleFonts.inter(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 2.0,
+                                color: _charcoal,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "Show this code or QR at the counter",
+                              style: GoogleFonts.inter(fontSize: 11, color: Colors.black45),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                // Action Buttons
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () => StudentShell.switchTab(1),
                         icon: const Icon(Icons.navigation_outlined, size: 18),
-                        label: const Text("View Route"),
+                        label: Text(
+                          "View Route",
+                          style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+                        ),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF006C5B),
-                          side: const BorderSide(color: Color(0xFF006C5B)),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          foregroundColor: _tealPrimary,
+                          side: const BorderSide(color: _tealPrimary, width: 1.5),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         ),
                       ),
                     ),
@@ -342,13 +463,17 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () => _confirmPickup(order),
-                        icon: const Icon(Icons.check_circle_outline, size: 18),
-                        label: const Text("Collected!"),
+                        icon: const Icon(Icons.check_circle_rounded, size: 18),
+                        label: Text(
+                          "Collected!",
+                          style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+                        ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF006C5B),
+                          backgroundColor: _tealPrimary,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         ),
                       ),
                     ),
@@ -368,18 +493,18 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[200]!),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+              color: _tealPrimary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.eco_rounded, color: Colors.green, size: 24),
+            child: const Icon(Icons.eco_rounded, color: _tealPrimary, size: 24),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -388,24 +513,32 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
               children: [
                 Text(
                   order.vendorName,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  style: GoogleFonts.playfairDisplay(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: _charcoal,
+                  ),
                 ),
                 Text(
                   "Rescued food • Paid ₹${order.paidPrice.toStringAsFixed(0)}",
-                  style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                  style: GoogleFonts.inter(color: Colors.black54, fontSize: 12),
                 ),
               ],
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(10),
+              color: _tealPrimary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: const Text(
+            child: Text(
               "Rescued 🌱",
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green),
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: _tealPrimary,
+              ),
             ),
           ),
         ],
