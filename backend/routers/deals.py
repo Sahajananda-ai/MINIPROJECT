@@ -214,6 +214,11 @@ def create_order(request: schemas.CreateOrderRequest, db: Session = Depends(get_
     return {
         "success": True,
         "message": "Order confirmed! Present this pickup code at counter.",
+        "order_id": order.id,
+        "pickup_code": order.pickup_code,
+        "vendor_name": vendor.name,
+        "paid_price": order.paid_price,
+        "remaining_quantity": deal.quantity,
         "order": {
             "id": order.id,
             "deal_id": deal.id,

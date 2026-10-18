@@ -35,10 +35,8 @@ Thumbs.db
 
 # Node / Mobile App
 node_modules/
-mobile_app/dist/
-mobile_app/node_modules/
+mobile_app_react/
 
 # Agent/Local configuration
 .agents/
 PRD.md
-mobile_app_flutter_backup/
