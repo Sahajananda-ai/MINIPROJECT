@@ -355,6 +355,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     final category = vendor['shop_category'] ?? 'Bakery';
     final rating = vendor['rating']?.toString() ?? '4.9';
 
+    final String title = deal['title'] ?? 'Surplus Mystery Box';
+    final String? coverUrl = deal['image_url'];
+    final String dietaryTag = deal['dietary_tag'] ?? '100% Pure Vegetarian';
+
     final double orig = double.tryParse(originalValue) ?? 400;
     final double curr = double.tryParse(currentPrice) ?? 180;
     final int discount = orig > 0 ? (((orig - curr) / orig) * 100).round() : 50;
@@ -368,7 +372,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 15,
               offset: const Offset(0, 5),
             )
@@ -387,10 +391,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                     width: double.infinity,
                     color: Colors.grey[200],
                     child: Image.network(
-                      _getImageForCategory(category),
+                      (coverUrl != null && coverUrl.isNotEmpty) ? coverUrl : _getImageForCategory(category),
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => Container(
-                        color: const Color(0xFF006C5B).withOpacity(0.1),
+                        color: const Color(0xFF006C5B).withValues(alpha: 0.1),
                         child: const Icon(Icons.fastfood_rounded, size: 50, color: Color(0xFF006C5B)),
                       ),
                     ),
@@ -424,7 +428,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.7),
+                        color: Colors.black.withValues(alpha: 0.7),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: const Row(
@@ -454,16 +458,36 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // AI Curated Badge
+                        Row(
+                          children: [
+                            const Icon(Icons.auto_awesome, color: Color(0xFF006C5B), size: 13),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                "AI Curated Mystery • $dietaryTag",
+                                style: const TextStyle(
+                                  color: Color(0xFF006C5B),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
                         Text(
-                          vendorName,
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          title,
+                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         Row(
                           children: [
-                            Text(category, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                            Text(vendorName, style: TextStyle(color: Colors.grey[700], fontSize: 13)),
                             const SizedBox(width: 6),
                             const Text("•", style: TextStyle(color: Colors.grey)),
                             const SizedBox(width: 6),
@@ -560,6 +584,10 @@ class _DealDetailsSheetState extends State<_DealDetailsSheet> {
     final currentPrice = widget.deal['start_price']?.toString() ?? '180';
     final vendorName = vendor['name'] ?? 'Mystery Box Partner';
     final category = vendor['shop_category'] ?? 'Bakery';
+    final title = widget.deal['title'] ?? '$vendorName Mystery Box';
+    final description = widget.deal['description'] ??
+        "A surprise assortment of today's surplus freshly prepared food. Safe, delicious, and eco-friendly!";
+    final dietaryTag = widget.deal['dietary_tag'] ?? '100% Pure Vegetarian';
 
     return Padding(
       padding: EdgeInsets.only(
@@ -583,19 +611,54 @@ class _DealDetailsSheetState extends State<_DealDetailsSheet> {
             ),
           ),
           const SizedBox(height: 16),
+          // AI Badge & Dietary Tag
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF006C5B).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.auto_awesome, color: Color(0xFF006C5B), size: 13),
+                    SizedBox(width: 4),
+                    Text(
+                      "AI Mystery Curated",
+                      style: TextStyle(color: Color(0xFF006C5B), fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  dietaryTag,
+                  style: const TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
                 child: Text(
-                  vendorName,
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  title,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.12),
+                  color: Colors.green.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Row(
@@ -612,19 +675,50 @@ class _DealDetailsSheetState extends State<_DealDetailsSheet> {
             ],
           ),
           const SizedBox(height: 4),
-          Text("Category: $category • Surprise Box", style: TextStyle(color: Colors.grey[600], fontSize: 14)),
-          const SizedBox(height: 16),
+          Text("By $vendorName • $category", style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+          const SizedBox(height: 14),
           const Divider(),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
-          const Text(
-            "What's inside?",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          // Sensory Description (No items revealed)
+          const Row(
+            children: [
+              Icon(Icons.psychology_alt_outlined, color: Color(0xFF006C5B), size: 18),
+              SizedBox(width: 6),
+              Text(
+                "Curated Mystery Sensory Notes",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              ),
+            ],
           ),
           const SizedBox(height: 6),
           Text(
-            "A surprise assortment of today's surplus freshly prepared food. Contains items originally valued at ₹$originalValue. Safe, delicious, and eco-friendly!",
-            style: TextStyle(color: Colors.grey[700], fontSize: 14, height: 1.4),
+            description,
+            style: TextStyle(color: Colors.grey[800], fontSize: 13, height: 1.45),
+          ),
+          const SizedBox(height: 12),
+
+          // Mystery Protection Guarantee Banner
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F5E9),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.green.shade200),
+            ),
+            child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.lock_clock_outlined, color: Colors.green, size: 18),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "Surplus Mystery Guarantee: Exact items remain secret until collection to keep prices over 50% off and prevent kitchen food waste. All items are freshly prepared today and 100% food safety inspected!",
+                    style: TextStyle(fontSize: 11, color: Color(0xFF1B5E20), height: 1.3),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
 

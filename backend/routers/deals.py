@@ -31,6 +31,10 @@ def create_deal(deal: schemas.DealCreate, background_tasks: BackgroundTasks, db:
     # Create the deal in PostgreSQL
     new_deal = models.Deal(
         vendor_id=deal.vendor_id,
+        title=deal.title or "Surplus Mystery Box",
+        description=deal.description,
+        dietary_tag=deal.dietary_tag or "Vegetarian",
+        image_url=deal.image_url,
         original_value=deal.original_value,
         start_price=deal.start_price,
         min_price=deal.min_price,

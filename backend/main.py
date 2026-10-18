@@ -7,8 +7,24 @@ from .database import engine, SessionLocal
 from .services import decay_pricing
 from . import models
 
-# Create all database tables
-models.Base.metadata.create_all(bind=engine)
+from sqlalchemy import text
+
+def init_database_and_migrations():
+    """Initializes tables and ensures newly added columns exist in PostgreSQL."""
+    try:
+        models.Base.metadata.create_all(bind=engine)
+        with engine.connect() as conn:
+            migration_sqls = [
+                "ALTER TABLE deals ADD COLUMN IF NOT EXISTS title VARCHAR DEFAULT 'Surplus Mystery Box';",
+                "ALTER TABLE deals ADD COLUMN IF NOT EXISTS description TEXT;",
+                "ALTER TABLE deals ADD COLUMN IF NOT EXISTS dietary_tag VARCHAR DEFAULT 'Vegetarian';",
+                "ALTER TABLE deals ADD COLUMN IF NOT EXISTS image_url VARCHAR;"
+            ]
+            for sql in migration_sqls:
+                conn.execute(text(sql))
+            conn.commit()
+    except Exception as e:
+        print(f"Database init notice: {e}")
 
 async def periodic_pricing_updater():
     """Background task to run decay pricing updates every 15 minutes."""
@@ -26,11 +42,14 @@ async def periodic_pricing_updater():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Initialize DB tables and migrations safely on startup
+    init_database_and_migrations()
     # Start the background task when the app starts
     task = asyncio.create_task(periodic_pricing_updater())
     yield
     # Clean up when the app shuts down
     task.cancel()
+
 
 app = FastAPI(
     title="Mystery Box API",

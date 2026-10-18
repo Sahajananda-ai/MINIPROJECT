@@ -40,6 +40,10 @@ class StudentResponse(StudentBase):
 
 # --- DEAL (MYSTERY BOX) SCHEMAS ---
 class DealBase(BaseModel):
+    title: Optional[str] = Field("Surplus Mystery Box", description="Appetizing title for the box")
+    description: Optional[str] = Field(None, description="Customer-facing mystery description (contents secret)")
+    dietary_tag: Optional[str] = Field("Vegetarian", description="Dietary preference tag")
+    image_url: Optional[str] = Field(None, description="Mystery visual cover image")
     original_value: float = Field(..., gt=0, description="Actual value of the food")
     start_price: float = Field(..., gt=0, description="Price at listing")
     min_price: float = Field(..., gt=0, description="Absolute lowest price it can drop to")

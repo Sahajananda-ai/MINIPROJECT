@@ -39,6 +39,11 @@ class Deal(Base):
     id = Column(Integer, primary_key=True, index=True)
     vendor_id = Column(Integer, ForeignKey("vendors.id"))
     
+    title = Column(String, default="Surplus Mystery Box")
+    description = Column(String, nullable=True)
+    dietary_tag = Column(String, default="Vegetarian")
+    image_url = Column(String, nullable=True)
+    
     original_value = Column(Float)
     start_price = Column(Float)
     min_price = Column(Float)

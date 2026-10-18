@@ -47,12 +47,20 @@ class ApiService {
     required double minPrice,
     required int quantity,
     required DateTime closingTime,
+    String? title,
+    String? description,
+    String? dietaryTag,
+    String? imageUrl,
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/deals/create'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         "vendor_id": vendorId,
+        "title": title ?? "Surplus Mystery Box",
+        "description": description,
+        "dietary_tag": dietaryTag ?? "Vegetarian",
+        "image_url": imageUrl,
         "original_value": originalValue,
         "start_price": startPrice,
         "min_price": minPrice,
@@ -165,4 +173,36 @@ class ApiService {
     }
     return null;
   }
+
+  /// Curates an enticing mystery description from surplus food photos/items without revealing contents
+  static Future<Map<String, dynamic>?> generateMysteryBoxDescription({
+    String? category,
+    String? itemsText,
+    List<String>? itemsDetected,
+    String? imageBase64,
+    String? imageUrl,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/ai/generate-box-description'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "category": category ?? "Bakery",
+          "items_text": itemsText,
+          "items_detected": itemsDetected,
+          "image_base64": imageBase64,
+          "image_url": imageUrl,
+        }),
+      );
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        print("AI Vision error: ${response.body}");
+      }
+    } catch (e) {
+      print("AI Vision request failed: $e");
+    }
+    return null;
+  }
 }
+

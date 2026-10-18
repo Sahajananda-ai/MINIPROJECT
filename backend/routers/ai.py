@@ -5,12 +5,32 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from ..database import get_db
 from .. import models
-from ..services import decay_pricing
+from ..services import decay_pricing, ai_vision_curator
 
 router = APIRouter(
     prefix="/ai",
     tags=["AI Surplus Assistant"]
 )
+
+class GenerateBoxDescriptionRequest(BaseModel):
+    items_detected: Optional[List[str]] = None
+    items_text: Optional[str] = None
+    category: Optional[str] = "Bakery"
+    image_url: Optional[str] = None
+    image_base64: Optional[str] = None
+
+class GenerateBoxDescriptionResponse(BaseModel):
+    success: bool
+    mystery_title: str
+    mystery_description: str
+    dietary_tag: str
+    freshness_guarantee: str
+    suggested_original_value: float
+    suggested_start_price: float
+    suggested_min_price: float
+    detected_items_internal: List[str]
+    cover_image_url: str
+
 
 class AiRecommendRequest(BaseModel):
     query: Optional[str] = "best value"
@@ -124,3 +144,18 @@ def get_ai_deal_recommendation(request: AiRecommendRequest, db: Session = Depend
         projected_savings=savings,
         carbon_offset_kg=co2
     )
+
+@router.post("/generate-box-description", response_model=GenerateBoxDescriptionResponse)
+def generate_mystery_box_description(request: GenerateBoxDescriptionRequest):
+    """
+    Curates a customer-facing Mystery Box description from vendor surplus items/photos.
+    Enforces the privacy & surprise rule: specific items are kept hidden from the customer.
+    """
+    result = ai_vision_curator.generate_curated_mystery_box(
+        items_detected=request.items_detected,
+        items_text=request.items_text,
+        category=request.category,
+        image_url=request.image_url,
+        image_base64=request.image_base64
+    )
+    return GenerateBoxDescriptionResponse(**result)

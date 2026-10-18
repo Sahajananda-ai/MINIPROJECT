@@ -11,26 +11,221 @@ class VendorDashboardScreen extends StatefulWidget {
 }
 
 class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
-  final _originalValueController = TextEditingController(text: "400");
-  final _startPriceController = TextEditingController(text: "200");
+  final _originalValueController = TextEditingController(text: "420");
+  final _startPriceController = TextEditingController(text: "210");
   final _minPriceController = TextEditingController(text: "120");
   final _quantityController = TextEditingController(text: "3");
-  int _selectedHours = 4;
-  bool _isLoading = false;
+  final _titleController = TextEditingController(text: "🥐 Midnight Boulangerie Secret Vault");
+  final _descriptionController = TextEditingController(
+    text: "A decadent surprise assortment of today's oven-fresh French viennoiseries and artisan bakes. Expect golden, flaky butter layers, comforting warm aromas, and delicate sweet and savory finishes hand-crafted by our master baker. 100% vegetarian surplus rescued at peak freshness!",
+  );
+  final _dietaryTagController = TextEditingController(text: "100% Pure Vegetarian • Contains Dairy");
+  final _itemsHintController = TextEditingController(text: "3 chocolate croissants, 2 pain au chocolat, 1 almond puff");
 
-  final List<Map<String, dynamic>> _presets = [
-    {"title": "🥐 Bakery Bag", "orig": 400, "start": 200, "min": 120, "qty": 3},
-    {"title": "☕ Cafe Treat", "orig": 250, "start": 120, "min": 80, "qty": 2},
-    {"title": "🍛 Lunch Thali", "orig": 300, "start": 150, "min": 100, "qty": 4},
+  int _selectedHours = 4;
+  String _selectedCategory = "Bakery";
+  String? _coverImageUrl = "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=800&auto=format&fit=crop&q=80";
+  bool _isLoading = false;
+  bool _isAiCurating = false;
+
+  // Selected surplus item photos (Used by AI to analyze, but hidden from customers)
+  final List<Map<String, String>> _surplusItemPhotos = [
+    {
+      "name": "Butter Croissants",
+      "url": "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400&auto=format&fit=crop&q=80"
+    },
+    {
+      "name": "Artisan Baguettes",
+      "url": "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&auto=format&fit=crop&q=80"
+    },
+    {
+      "name": "Chocolate Bakes",
+      "url": "https://images.unsplash.com/photo-1607958996333-41aef7caef4b?w=400&auto=format&fit=crop&q=80"
+    },
   ];
 
-  void _applyPreset(Map<String, dynamic> preset) {
+  // Quick Preset Sample Food Photos for easy 1-tap testing
+  final List<Map<String, dynamic>> _sampleSurplusTrays = [
+    {
+      "category": "Bakery",
+      "title": "🥐 Bakery & Pastry Surplus",
+      "itemsText": "3 chocolate croissants, 2 blueberry muffins, 1 puff",
+      "orig": 420.0,
+      "start": 210.0,
+      "min": 120.0,
+      "photos": [
+        {"name": "Croissant", "url": "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400&auto=format&fit=crop&q=80"},
+        {"name": "Muffin", "url": "https://images.unsplash.com/photo-1607958996333-41aef7caef4b?w=400&auto=format&fit=crop&q=80"},
+      ]
+    },
+    {
+      "category": "Cafe",
+      "title": "🥪 Cafe Panini & Sandwiches",
+      "itemsText": "2 grilled vegetable paninis, 1 pesto wrap, 1 cookie",
+      "orig": 360.0,
+      "start": 180.0,
+      "min": 110.0,
+      "photos": [
+        {"name": "Panini", "url": "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=400&auto=format&fit=crop&q=80"},
+        {"name": "Wrap", "url": "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&auto=format&fit=crop&q=80"},
+      ]
+    },
+    {
+      "category": "Restaurant",
+      "title": "🍛 Shahi Feast & Curries",
+      "itemsText": "Paneer makhani, dal tadka, jeera rice, tandoori rotis",
+      "orig": 350.0,
+      "start": 175.0,
+      "min": 100.0,
+      "photos": [
+        {"name": "Curry", "url": "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=400&auto=format&fit=crop&q=80"},
+        {"name": "Breads", "url": "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&auto=format&fit=crop&q=80"},
+      ]
+    },
+    {
+      "category": "Pizza",
+      "title": "🍕 Woodfired Pizza Bakes",
+      "itemsText": "3 margherita slices, 2 garlic breads, 1 calzone",
+      "orig": 380.0,
+      "start": 190.0,
+      "min": 110.0,
+      "photos": [
+        {"name": "Pizza", "url": "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&auto=format&fit=crop&q=80"},
+      ]
+    },
+  ];
+
+  void _loadSurplusTray(Map<String, dynamic> tray) {
     setState(() {
-      _originalValueController.text = preset['orig'].toString();
-      _startPriceController.text = preset['start'].toString();
-      _minPriceController.text = preset['min'].toString();
-      _quantityController.text = preset['qty'].toString();
+      _selectedCategory = tray['category'];
+      _itemsHintController.text = tray['itemsText'];
+      _originalValueController.text = tray['orig'].toString();
+      _startPriceController.text = tray['start'].toString();
+      _minPriceController.text = tray['min'].toString();
+      _surplusItemPhotos.clear();
+      for (var p in tray['photos']) {
+        _surplusItemPhotos.add({"name": p['name'], "url": p['url']});
+      }
     });
+    // Trigger AI Vision curation automatically
+    _generateAiMysteryDescription();
+  }
+
+  void _addCustomPhotoPrompt() {
+    final textCtrl = TextEditingController(
+      text: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400&auto=format&fit=crop&q=80",
+    );
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.add_photo_alternate_rounded, color: Color(0xFF006C5B)),
+            SizedBox(width: 8),
+            Text("Add Item Photo URL", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Add photo of surplus food items from kitchen. The AI analyzes item qualities to craft the mystery description while keeping exact items hidden from customers.",
+              style: TextStyle(fontSize: 13, color: Colors.grey),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: textCtrl,
+              decoration: InputDecoration(
+                labelText: "Image URL",
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF006C5B)),
+            onPressed: () {
+              final url = textCtrl.text.trim();
+              if (url.isNotEmpty) {
+                setState(() {
+                  _surplusItemPhotos.add({"name": "Surplus Item #${_surplusItemPhotos.length + 1}", "url": url});
+                });
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text("Add Photo", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _generateAiMysteryDescription() async {
+    setState(() {
+      _isAiCurating = true;
+    });
+
+    final itemNames = _surplusItemPhotos.map((p) => p['name'] ?? '').where((n) => n.isNotEmpty).toList();
+    final itemsText = _itemsHintController.text.trim();
+
+    final result = await ApiService.generateMysteryBoxDescription(
+      category: _selectedCategory,
+      itemsText: itemsText.isNotEmpty ? itemsText : null,
+      itemsDetected: itemNames.isNotEmpty ? itemNames : null,
+      imageUrl: _surplusItemPhotos.isNotEmpty ? _surplusItemPhotos.first['url'] : null,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _isAiCurating = false;
+    });
+
+    if (result != null && result['success'] == true) {
+      setState(() {
+        _titleController.text = result['mystery_title'] ?? _titleController.text;
+        _descriptionController.text = result['mystery_description'] ?? _descriptionController.text;
+        _dietaryTagController.text = result['dietary_tag'] ?? _dietaryTagController.text;
+        _coverImageUrl = result['cover_image_url'] ?? _coverImageUrl;
+
+        if (result['suggested_original_value'] != null) {
+          _originalValueController.text = result['suggested_original_value'].toString();
+        }
+        if (result['suggested_start_price'] != null) {
+          _startPriceController.text = result['suggested_start_price'].toString();
+        }
+        if (result['suggested_min_price'] != null) {
+          _minPriceController.text = result['suggested_min_price'].toString();
+        }
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Color(0xFF006C5B),
+          duration: Duration(seconds: 4),
+          content: Row(
+            children: [
+              Icon(Icons.auto_awesome, color: Colors.amber),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  "✨ AI Curated Mystery Description! (Specific items kept secret from customers)",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("AI curation unavailable. Using existing description.")),
+      );
+    }
   }
 
   void _createDeal() async {
@@ -61,6 +256,10 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
     try {
       success = await ApiService.createMysteryBox(
         vendorId: 1,
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        dietaryTag: _dietaryTagController.text.trim(),
+        imageUrl: _coverImageUrl,
         originalValue: originalValue,
         startPrice: startPrice,
         minPrice: minPrice,
@@ -81,7 +280,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: const Color(0xFF006C5B),
-          content: Text("🎉 Mystery Box ($quantity boxes) Listed! Students within 2km are being alerted!"),
+          content: Text("🎉 Mystery Box '$quantity boxes' Listed! Students within 2km are being alerted!"),
         ),
       );
     } else {
@@ -139,45 +338,46 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                     const SizedBox(height: 18),
                     const Text(
                       "Pending Customer Pickups (Ready):",
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF006C5B)),
                     ),
                     const SizedBox(height: 8),
                     ...activeOrders.map((order) {
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF006C5B).withValues(alpha: 0.06),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFF006C5B).withValues(alpha: 0.2)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.shopping_bag_outlined, color: Color(0xFF006C5B), size: 20),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
+                      return InkWell(
+                        onTap: () {
+                          setDialogState(() {
+                            passCodeCtrl.text = order.pickupCode;
+                          });
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE0F2F1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFF006C5B).withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     order.pickupCode,
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF006C5B)),
                                   ),
                                   Text(
-                                    "₹${order.paidPrice.toStringAsFixed(0)} • ${order.shopCategory}",
-                                    style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                                    "${order.vendorName} • ₹${order.paidPrice}",
+                                    style: TextStyle(fontSize: 11, color: Colors.grey[700]),
                                   ),
                                 ],
                               ),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                passCodeCtrl.text = order.pickupCode;
-                                setDialogState(() {});
-                              },
-                              child: const Text("Select", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                            ),
-                          ],
+                              const Text(
+                                "Tap to select",
+                                style: TextStyle(fontSize: 11, color: Color(0xFF006C5B), fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     }),
@@ -191,11 +391,10 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                 child: const Text("Cancel"),
               ),
               ElevatedButton.icon(
-                icon: const Icon(Icons.check_circle_rounded, size: 18),
-                label: const Text("Verify & Handover"),
+                icon: const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+                label: const Text("Verify & Handover", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF006C5B),
-                  foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
@@ -203,20 +402,16 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                   final input = passCodeCtrl.text.trim();
                   if (input.isEmpty) return;
 
-                  // 1. Try resolving order in OrderManager
                   final matchedOrder = OrderManager().findOrderByCodeOrId(input);
                   int dealId = matchedOrder?.dealId ?? 41;
 
-                  // If numeric deal id was embedded, extract it
                   final numericMatch = RegExp(r'\d+').firstMatch(input);
                   if (numericMatch != null && matchedOrder == null) {
                     dealId = int.tryParse(numericMatch.group(0) ?? '') ?? 41;
                   }
 
-                  // 2. Call backend verification (fallback to true for smooth local review showcasing)
                   await ApiService.completeDeal(dealId: dealId, studentId: 1);
 
-                  // 3. Update OrderManager client-side state
                   OrderManager().markOrderCollected(dealId);
                   OrderManager().markOrderCollectedByCode(input);
 
@@ -256,6 +451,10 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
     _startPriceController.dispose();
     _minPriceController.dispose();
     _quantityController.dispose();
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _dietaryTagController.dispose();
+    _itemsHintController.dispose();
     super.dispose();
   }
 
@@ -324,48 +523,270 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
+
+            // AI Mystery Vision & Curator Section Header
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF006C5B).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.auto_awesome, color: Color(0xFF006C5B), size: 22),
+                ),
+                const SizedBox(width: 10),
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "AI Mystery Box Curator",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      "Add surplus items/photos • AI generates description keeping contents secret",
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 14),
+
+            // AI Vision Box Container
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFF006C5B).withValues(alpha: 0.2)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Mystery Shield Banner
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5E9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.green.shade200),
+                    ),
+                    child: const Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.shield_outlined, color: Colors.green, size: 20),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "🔒 Customer Mystery Shield Active: Photos and itemized names are analyzed by AI to craft an enticing description, but are KEPT HIDDEN from customers to preserve the mystery!",
+                            style: TextStyle(fontSize: 12, color: Color(0xFF1B5E20), height: 1.3),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // Quick Sample Surplus Trays
+                  const Text(
+                    "Quick Surplus Photo Presets:",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: _sampleSurplusTrays.map((tray) {
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ActionChip(
+                            avatar: const Icon(Icons.camera_alt_outlined, size: 14, color: Color(0xFF006C5B)),
+                            label: Text(tray['title'], style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                            backgroundColor: Colors.grey[100],
+                            onPressed: () => _loadSurplusTray(tray),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // Surplus Item Photos Gallery
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Surplus Item Photos (${_surplusItemPhotos.length}):",
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      TextButton.icon(
+                        icon: const Icon(Icons.add_photo_alternate_outlined, size: 16),
+                        label: const Text("Add Photo URL", style: TextStyle(fontSize: 12)),
+                        onPressed: _addCustomPhotoPrompt,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  SizedBox(
+                    height: 90,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _surplusItemPhotos.length + 1,
+                      itemBuilder: (ctx, index) {
+                        if (index == _surplusItemPhotos.length) {
+                          return InkWell(
+                            onTap: _addCustomPhotoPrompt,
+                            borderRadius: BorderRadius.circular(14),
+                            child: Container(
+                              width: 80,
+                              margin: const EdgeInsets.only(right: 10),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[100],
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: Colors.grey[300]!, style: BorderStyle.solid),
+                              ),
+                              child: const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.add_a_photo_outlined, color: Colors.grey, size: 24),
+                                  SizedBox(height: 4),
+                                  Text("Add Item", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+
+                        final photo = _surplusItemPhotos[index];
+                        return Stack(
+                          children: [
+                            Container(
+                              width: 85,
+                              margin: const EdgeInsets.only(right: 10),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: const Color(0xFF006C5B).withValues(alpha: 0.3)),
+                                image: DecorationImage(
+                                  image: NetworkImage(photo['url']!),
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: 4,
+                              right: 14,
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _surplusItemPhotos.removeAt(index);
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.black54,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.close, color: Colors.white, size: 12),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 4,
+                              left: 4,
+                              right: 14,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.black87,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  photo['name'] ?? 'Item',
+                                  style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Optional notes / surplus item names for AI
+                  TextField(
+                    controller: _itemsHintController,
+                    decoration: InputDecoration(
+                      labelText: "Surplus Items in Kitchen (For AI Vision only)",
+                      hintText: "e.g., 3 chocolate croissants, 2 pain au chocolat, muffins",
+                      prefixIcon: const Icon(Icons.inventory_2_outlined, size: 20),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // AI Curate Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      onPressed: _isAiCurating ? null : _generateAiMysteryDescription,
+                      icon: _isAiCurating
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                          : const Icon(Icons.auto_awesome, color: Colors.amber),
+                      label: Text(
+                        _isAiCurating ? "AI Analyzing Photos & Curating..." : "✨ Generate AI Mystery Description",
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF006C5B),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
 
             // Section Title
             const Text(
-              "Publish Mystery Box",
+              "Review & Publish Mystery Box",
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
             Text(
-              "Rescue surplus food before closing. Prices dynamically decay to maximize sales.",
+              "Below is what customers will see in the app. Exact surplus items remain a thrilling surprise!",
               style: TextStyle(color: Colors.grey[600], fontSize: 13),
             ),
 
             const SizedBox(height: 16),
-
-            // Quick Preset Buttons
-            const Text("Quick Presets:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-            const SizedBox(height: 8),
-            Row(
-              children: _presets.map((p) {
-                return Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: OutlinedButton(
-                      onPressed: () => _applyPreset(p),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        side: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      child: Text(
-                        p['title'],
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-
-            const SizedBox(height: 20),
 
             // Form Card
             Container(
@@ -374,7 +795,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: Colors.black.withValues(alpha: 0.04),
                     blurRadius: 15,
                     offset: const Offset(0, 5),
                   )
@@ -382,7 +803,43 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
               ),
               padding: const EdgeInsets.all(20),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Mystery Box Title (Customer Facing)
+                  TextField(
+                    controller: _titleController,
+                    decoration: InputDecoration(
+                      labelText: "Mystery Box Public Title",
+                      prefixIcon: const Icon(Icons.card_giftcard_rounded, color: Color(0xFF006C5B)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Mystery Description (Customer Facing - No items revealed)
+                  TextField(
+                    controller: _descriptionController,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      labelText: "Customer Mystery Description (Keeps exact items secret)",
+                      helperText: "Appetizing description emphasizing freshness, artisanal bake & value",
+                      prefixIcon: const Icon(Icons.description_outlined, color: Color(0xFF006C5B)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Dietary Tag
+                  TextField(
+                    controller: _dietaryTagController,
+                    decoration: InputDecoration(
+                      labelText: "Dietary & Freshness Badge",
+                      prefixIcon: const Icon(Icons.eco_outlined, color: Colors.green),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
                   _buildInputField(
                     label: "Original Value (₹)",
                     icon: Icons.currency_rupee,
@@ -410,7 +867,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                   ),
                   const SizedBox(height: 16),
                   _buildInputField(
-                    label: "Quantity of Boxes",
+                    label: "Quantity of Boxes Available",
                     icon: Icons.inventory_2_outlined,
                     controller: _quantityController,
                   ),
