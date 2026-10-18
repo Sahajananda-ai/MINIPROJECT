@@ -55,3 +55,24 @@ class Deal(Base):
     is_active = Column(Boolean, default=True)
 
     vendor = relationship("Vendor", back_populates="deals")
+
+
+class Order(Base):
+    __tablename__ = "orders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    deal_id = Column(Integer, ForeignKey("deals.id"), index=True)
+    student_id = Column(Integer, ForeignKey("students.id"), index=True)
+    vendor_id = Column(Integer, ForeignKey("vendors.id"), index=True)
+
+    pickup_code = Column(String, unique=True, index=True)
+    status = Column(String, default="PAID")  # RESERVED, PAID, COLLECTED, CANCELLED
+    paid_price = Column(Float)
+    original_value = Column(Float)
+
+    reserved_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    collected_at = Column(DateTime(timezone=True), nullable=True)
+
+    deal = relationship("Deal", backref="orders")
+    student = relationship("Student", backref="orders")
+    vendor = relationship("Vendor", backref="orders")

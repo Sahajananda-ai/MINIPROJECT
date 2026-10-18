@@ -115,6 +115,10 @@ def reserve_deal(request: schemas.ReserveRequest, db: Session = Depends(get_db))
     if closing_time and closing_time <= now:
         raise HTTPException(status_code=400, detail="Deal has expired")
 
+    # Strict inventory check: if DB quantity is 0 or less, reject immediately
+    if deal.quantity <= 0:
+        raise HTTPException(status_code=409, detail="All mystery boxes for this batch have already been reserved!")
+
     # 2. Check if student already has an active lock (allow smooth re-entry into checkout)
     lock_key = f"deal_reserve:{deal.id}:{request.student_id}"
     existing_lock = redis_client.get(lock_key)
@@ -130,7 +134,6 @@ def reserve_deal(request: schemas.ReserveRequest, db: Session = Depends(get_db))
 
     # 3. Redis Inventory Check (Atomic decrement)
     inventory_key = f"deal_inventory:{deal.id}"
-    # If key missing in Redis (e.g., container restart), initialize from Postgres
     if not redis_client.exists(inventory_key):
         ttl_seconds = max(60, int((closing_time - now).total_seconds())) if closing_time else 3600
         redis_client.set(inventory_key, deal.quantity, ex=ttl_seconds)
@@ -140,10 +143,9 @@ def reserve_deal(request: schemas.ReserveRequest, db: Session = Depends(get_db))
     if new_quantity < 0:
         # Revert the decrement since we went below 0
         redis_client.incr(inventory_key)
-        raise HTTPException(status_code=400, detail="Deal is completely sold out")
+        raise HTTPException(status_code=409, detail="All mystery boxes for this batch have already been reserved!")
         
     # 4. Create Redis Lock for this specific student and deal (5 minute TTL)
-    # The student now has 5 minutes to complete Razorpay payment
     lock_acquired = redis_client.set(lock_key, "LOCKED", ex=300, nx=True)
     
     if not lock_acquired:
@@ -161,18 +163,186 @@ def reserve_deal(request: schemas.ReserveRequest, db: Session = Depends(get_db))
         expires_in_seconds=300
     )
 
+import random
+
+@router.post("/orders/create", response_model=dict)
+def create_order(request: schemas.CreateOrderRequest, db: Session = Depends(get_db)):
+    """
+    Finalizes the reservation, deducts database inventory permanently,
+    clears the ephemeral Redis lock, and generates a verified pickup pass code.
+    """
+    deal = db.query(models.Deal).filter(models.Deal.id == request.deal_id).first()
+    if not deal:
+        raise HTTPException(status_code=404, detail="Deal not found")
+
+    if deal.quantity <= 0:
+        raise HTTPException(status_code=409, detail="All boxes for this deal are completely sold out.")
+
+    now = datetime.now(timezone.utc)
+    current_price = decay_pricing.calculate_decay_price(deal)
+
+    # Generate secure 6-character unique alphanumeric pickup code e.g. MB-4182
+    rand_suffix = f"{random.randint(1000, 9999)}"
+    pickup_code = f"MB-{deal.id}-{rand_suffix}"
+
+    # Create persistent Order in Postgres
+    order = models.Order(
+        deal_id=deal.id,
+        student_id=request.student_id,
+        vendor_id=deal.vendor_id,
+        pickup_code=pickup_code,
+        status="PAID",
+        paid_price=current_price,
+        original_value=deal.original_value,
+        reserved_at=now
+    )
+    db.add(order)
+
+    # Permanently decrement inventory
+    deal.quantity = max(0, deal.quantity - 1)
+    if deal.quantity == 0:
+        deal.is_active = False
+
+    db.commit()
+    db.refresh(order)
+
+    # Release Redis lock
+    lock_key = f"deal_reserve:{deal.id}:{request.student_id}"
+    redis_client.delete(lock_key)
+
+    vendor = deal.vendor
+    return {
+        "success": True,
+        "message": "Order confirmed! Present this pickup code at counter.",
+        "order": {
+            "id": order.id,
+            "deal_id": deal.id,
+            "pickup_code": order.pickup_code,
+            "vendor_id": vendor.id,
+            "vendor_name": vendor.name,
+            "shop_category": vendor.shop_category,
+            "paid_price": order.paid_price,
+            "original_value": order.original_value,
+            "savings": round(order.original_value - order.paid_price, 2),
+            "status": order.status,
+            "reserved_at": order.reserved_at.isoformat(),
+            "closing_time": deal.closing_time.isoformat() if deal.closing_time else None
+        }
+    }
+
+@router.post("/orders/verify-pickup", response_model=schemas.VerifyPickupResponse)
+def verify_pickup(request: schemas.VerifyPickupRequest, db: Session = Depends(get_db)):
+    """
+    Vendor-facing validation: Checks if the scanned or entered pickup code is valid,
+    ensures it belongs to this vendor, and verifies it hasn't been redeemed already.
+    """
+    clean_code = (request.pickup_code or "").strip().upper()
+    if not clean_code:
+        raise HTTPException(status_code=400, detail="Pickup code cannot be blank")
+
+    # Search for matching order
+    order = db.query(models.Order).filter(
+        func.upper(models.Order.pickup_code) == clean_code
+    ).first()
+
+    if not order:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Passcode '{clean_code}' is invalid or does not exist. Please check with customer."
+        )
+
+    if order.vendor_id != request.vendor_id:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Passcode '{clean_code}' belongs to a different store. Cannot redeem here."
+        )
+
+    if order.status == "COLLECTED":
+        collected_time_str = order.collected_at.strftime("%I:%M %p") if order.collected_at else "earlier"
+        raise HTTPException(
+            status_code=400,
+            detail=f"This Mystery Box was already collected at {collected_time_str}!"
+        )
+
+    # Mark as collected
+    order.status = "COLLECTED"
+    order.collected_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(order)
+
+    deal = order.deal
+    student = order.student
+    student_name = student.name if student else "Campus Student"
+
+    return schemas.VerifyPickupResponse(
+        success=True,
+        message=f"Pickup verified! Mystery Box handed over to {student_name}.",
+        order={
+            "id": order.id,
+            "pickup_code": order.pickup_code,
+            "student_name": student_name,
+            "deal_title": deal.title if deal else "Surplus Mystery Box",
+            "paid_price": order.paid_price,
+            "original_value": order.original_value,
+            "savings": round(order.original_value - order.paid_price, 2),
+            "status": order.status,
+            "collected_at": order.collected_at.isoformat()
+        }
+    )
+
+@router.get("/orders/student/{student_id}", response_model=List[dict])
+def get_student_orders(student_id: int, db: Session = Depends(get_db)):
+    orders = db.query(models.Order).filter(models.Order.student_id == student_id).order_by(models.Order.id.desc()).all()
+    results = []
+    for o in orders:
+        vendor = o.vendor
+        deal = o.deal
+        results.append({
+            "id": o.id,
+            "deal_id": o.deal_id,
+            "pickup_code": o.pickup_code,
+            "vendor_name": vendor.name if vendor else "Mystery Box Partner",
+            "shop_category": vendor.shop_category if vendor else "Surplus",
+            "paid_price": o.paid_price,
+            "original_value": o.original_value,
+            "savings": round(o.original_value - o.paid_price, 2),
+            "status": o.status,
+            "is_collected": o.status == "COLLECTED",
+            "reserved_at": o.reserved_at.isoformat() if o.reserved_at else None,
+            "closing_time": deal.closing_time.isoformat() if (deal and deal.closing_time) else None
+        })
+    return results
+
+@router.get("/orders/vendor/{vendor_id}", response_model=List[dict])
+def get_vendor_orders(vendor_id: int, db: Session = Depends(get_db)):
+    orders = db.query(models.Order).filter(models.Order.vendor_id == vendor_id).order_by(models.Order.id.desc()).all()
+    results = []
+    for o in orders:
+        student = o.student
+        deal = o.deal
+        results.append({
+            "id": o.id,
+            "pickup_code": o.pickup_code,
+            "student_name": student.name if student else "Campus Student",
+            "deal_title": deal.title if deal else "Surplus Box",
+            "paid_price": o.paid_price,
+            "savings": round(o.original_value - o.paid_price, 2),
+            "status": o.status,
+            "is_collected": o.status == "COLLECTED",
+            "reserved_at": o.reserved_at.isoformat() if o.reserved_at else None,
+            "collected_at": o.collected_at.isoformat() if o.collected_at else None
+        })
+    return results
+
 @router.post("/{deal_id}/complete", response_model=dict)
 def complete_deal(deal_id: int, request: schemas.CompleteDealRequest, db: Session = Depends(get_db)):
-    # 1. Verify deal exists
     deal = db.query(models.Deal).filter(models.Deal.id == deal_id).first()
     if not deal:
         raise HTTPException(status_code=404, detail=f"Deal #{deal_id} not found")
 
-    # 2. Clear Redis reservation lock if still active
     lock_key = f"deal_reserve:{deal.id}:{request.student_id}"
     redis_client.delete(lock_key)
 
-    # 3. Decrement deal quantity in database if still available
     if deal.quantity > 0:
         deal.quantity -= 1
         db.commit()

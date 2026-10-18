@@ -85,3 +85,33 @@ class CompleteDealRequest(BaseModel):
 
 class RateVendorRequest(BaseModel):
     rating: float = Field(..., ge=1.0, le=5.0, description="Rating from 1 to 5 stars")
+
+# --- ORDER & PICKUP VERIFICATION SCHEMAS ---
+class CreateOrderRequest(BaseModel):
+    deal_id: int
+    student_id: int = 1
+    payment_method: str = "UPI"
+
+class OrderResponse(BaseModel):
+    id: int
+    deal_id: int
+    student_id: int
+    vendor_id: int
+    pickup_code: str
+    status: str
+    paid_price: float
+    original_value: float
+    reserved_at: datetime
+    collected_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class VerifyPickupRequest(BaseModel):
+    vendor_id: int
+    pickup_code: str
+
+class VerifyPickupResponse(BaseModel):
+    success: bool
+    message: str
+    order: Optional[dict] = None

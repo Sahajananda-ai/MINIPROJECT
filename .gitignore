@@ -33,6 +33,11 @@ build/
 .DS_Store
 Thumbs.db
 
+# Node / Web
+node_modules/
+web_app/dist/
+web_app/node_modules/
+
 # Agent/Local configuration
 .agents/
 PRD.md

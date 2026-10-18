@@ -1,0 +1,238 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
+:root {
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Paper-morphism & Matte Palette */
+  --bg-paper: #FAF7F0;
+  --bg-paper-subtle: #F3EFE6;
+  --card-bg: #FFFFFF;
+  --border-paper: #E6DFD1;
+  --border-light: #ECE6D8;
+  
+  --primary-teal: #0E5B4B;
+  --primary-teal-dark: #083D32;
+  --primary-teal-light: #E8F3F0;
+  
+  --warm-amber: #E76F51;
+  --warm-amber-light: #FDF1ED;
+  --warm-gold: #F4A261;
+  --warm-ochre: #E9C46A;
+  
+  --text-primary: #26221D;
+  --text-secondary: #6B6358;
+  --text-tertiary: #9B9387;
+
+  --shadow-paper: 0 4px 16px -2px rgba(45, 38, 28, 0.05), 0 1px 3px 0 rgba(45, 38, 28, 0.04);
+  --shadow-lifted: 0 12px 28px -6px rgba(45, 38, 28, 0.08), 0 3px 8px -2px rgba(45, 38, 28, 0.04);
+  --shadow-badge: 0 2px 6px rgba(14, 91, 75, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-paper);
+  color: var(--text-primary);
+  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Paper Grain Texture Overlay */
+.paper-grain {
+  background-color: var(--bg-paper);
+  background-image: radial-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 0);
+  background-size: 16px 16px;
+}
+
+/* Mobile Canvas Container */
+.app-viewport {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--bg-paper);
+  position: relative;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 768px) {
+  body {
+    background: #EDE8DD;
+    padding: 24px 0;
+  }
+  .app-viewport {
+    border-radius: 36px;
+    overflow: hidden;
+    min-height: calc(100vh - 48px);
+    border: 8px solid #231F1C;
+    box-shadow: 0 25px 60px -15px rgba(25, 20, 15, 0.25);
+  }
+}
+
+/* Headings */
+h1, h2, h3, .serif-heading {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+/* Matte Paper Card */
+.paper-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-paper);
+  border-radius: 20px;
+  box-shadow: var(--shadow-paper);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+}
+
+.paper-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lifted);
+}
+
+/* Tactile Pill Badge */
+.pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.pill-teal {
+  background: var(--primary-teal-light);
+  color: var(--primary-teal);
+  border: 1px solid rgba(14, 91, 75, 0.15);
+}
+
+.pill-amber {
+  background: var(--warm-amber-light);
+  color: var(--warm-amber);
+  border: 1px solid rgba(231, 111, 81, 0.2);
+}
+
+/* Tactile Button */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--primary-teal);
+  color: #FFFFFF;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 14px;
+  padding: 13px 20px;
+  border-radius: 16px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(14, 91, 75, 0.25);
+  transition: all 0.15s ease;
+}
+
+.btn-primary:active {
+  transform: scale(0.97);
+  background: var(--primary-teal-dark);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 14px;
+  padding: 12px 18px;
+  border-radius: 16px;
+  border: 1.5px solid var(--border-paper);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-secondary:active {
+  background: var(--bg-paper-subtle);
+  transform: scale(0.97);
+}
+
+/* Ticket Perforation Pass */
+.ticket-pass {
+  background: #FFFFFF;
+  border-radius: 24px;
+  position: relative;
+  overflow: hidden;
+  border: 1.5px solid var(--border-paper);
+  box-shadow: var(--shadow-lifted);
+}
+
+.ticket-divider {
+  position: relative;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  margin: 6px 0;
+}
+
+.ticket-divider::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--bg-paper);
+  border-right: 1.5px solid var(--border-paper);
+}
+
+.ticket-divider::after {
+  content: '';
+  position: absolute;
+  right: -12px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--bg-paper);
+  border-left: 1.5px solid var(--border-paper);
+}
+
+.ticket-dashed-line {
+  width: 100%;
+  border-top: 2px dashed #D9D2C3;
+  margin: 0 16px;
+}
+
+/* Smooth Scroll */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #D9D2C3;
+  border-radius: 10px;
+}

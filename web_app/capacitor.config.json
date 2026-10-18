@@ -1,0 +1,9 @@
+{
+  "appId": "ai.savebite.app",
+  "appName": "SaveBite",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  }
+}
