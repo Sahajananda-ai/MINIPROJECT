@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../services/order_manager.dart';
 import 'checkout.dart';
@@ -123,61 +124,91 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     final filtered = _filteredDeals;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: const Color(0xFFF5F0E8),
       body: RefreshIndicator(
         onRefresh: _loadDeals,
         color: const Color(0xFF006C5B),
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
           slivers: [
-            // Sliver App Bar Header
+            // Sliver App Bar Header — TGTG warm cream style
             SliverAppBar(
               expandedHeight: 180.0,
               pinned: true,
               backgroundColor: const Color(0xFF006C5B),
               foregroundColor: Colors.white,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+              ),
               flexibleSpace: FlexibleSpaceBar(
                 titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
-                title: const Column(
+                title: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Mystery Box Rescue',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                      'SaveBite',
+                      style: GoogleFonts.playfairDisplay(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 20,
+                        color: Colors.white,
+                      ),
                     ),
                     Text(
                       '📍 North Campus • 2km Hyperlocal Feed',
-                      style: TextStyle(fontSize: 10, color: Colors.white70),
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
                 background: Container(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0xFF006C5B), Color(0xFF0A8A76)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF004D40), Color(0xFF006C5B)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
                     ),
+                    borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
                   ),
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 24, top: 20),
-                      child: Icon(
-                        Icons.lunch_dining_rounded,
-                        size: 90,
-                        color: Colors.white.withValues(alpha: 0.18),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        right: -20,
+                        top: 20,
+                        child: Icon(
+                          Icons.eco_rounded,
+                          size: 130,
+                          color: Colors.white.withValues(alpha: 0.06),
+                        ),
                       ),
-                    ),
+                      Positioned(
+                        right: 60,
+                        bottom: 40,
+                        child: Icon(
+                          Icons.lunch_dining_rounded,
+                          size: 70,
+                          color: Colors.white.withValues(alpha: 0.08),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
               actions: [
-                IconButton(
-                  tooltip: 'SaveBite AI Assistant',
-                  icon: const Icon(Icons.auto_awesome_rounded, color: Colors.amberAccent),
-                  onPressed: _openAiAssistant,
+                Container(
+                  margin: const EdgeInsets.only(right: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: IconButton(
+                    tooltip: 'SaveBite AI Assistant',
+                    icon: const Icon(Icons.auto_awesome_rounded, color: Color(0xFFFF8C42), size: 22),
+                    onPressed: _openAiAssistant,
+                  ),
                 ),
               ],
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'student_home.dart';
 import 'student_map.dart';
 import 'student_orders.dart';
@@ -23,6 +24,12 @@ class StudentShell extends StatefulWidget {
 
 class _StudentShellState extends State<StudentShell> {
   final OrderManager _orderManager = OrderManager();
+
+  // Too Good To Go palette
+  static const Color _cream = Color(0xFFF5F0E8);
+  static const Color _tealPrimary = Color(0xFF006C5B);
+  static const Color _warmAmber = Color(0xFFFF8C42);
+  static const Color _charcoal = Color(0xFF2D2D2D);
 
   final List<Widget> _screens = const [
     StudentHomeScreen(),
@@ -59,6 +66,7 @@ class _StudentShellState extends State<StudentShell> {
     final activeOrders = _orderManager.activeOrders;
 
     return Scaffold(
+      backgroundColor: _cream,
       body: Stack(
         children: [
           IndexedStack(
@@ -66,10 +74,10 @@ class _StudentShellState extends State<StudentShell> {
             children: _screens,
           ),
 
-          // Active Pickup Sticky Prompt (Shows if an active box is pending and user is on Home/Impact)
+          // Active Pickup Sticky Prompt
           if (activeOrders.isNotEmpty && (currentIndex == 0 || currentIndex == 3))
             Positioned(
-              top: 50,
+              top: MediaQuery.of(context).padding.top + 4,
               left: 16,
               right: 16,
               child: Hero(
@@ -77,54 +85,54 @@ class _StudentShellState extends State<StudentShell> {
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    onTap: () {
-                      StudentShell.switchTab(1); // Jump to Radar Map
-                    },
-                    borderRadius: BorderRadius.circular(16),
+                    onTap: () => StudentShell.switchTab(1),
+                    borderRadius: BorderRadius.circular(18),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [Color(0xFF006C5B), Color(0xFF004D40)],
                         ),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(18),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF006C5B).withValues(alpha: 0.35),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          )
+                            color: _tealPrimary.withValues(alpha: 0.35),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
                         ],
                       ),
                       child: Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: const BoxDecoration(
-                              color: Colors.amber,
-                              shape: BoxShape.circle,
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: _warmAmber,
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(Icons.directions_walk_rounded, color: Colors.black87, size: 16),
+                            child: const Icon(Icons.directions_walk_rounded, color: Colors.white, size: 18),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Text(
+                                Text(
                                   "1 Mystery Box Ready for Pickup!",
-                                  style: TextStyle(
+                                  style: GoogleFonts.inter(
                                     color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
                                   ),
                                 ),
+                                const SizedBox(height: 2),
                                 Text(
                                   "${activeOrders.first.vendorName} • Tap to view route & pass",
-                                  style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.85),
+                                  style: GoogleFonts.inter(
+                                    color: Colors.white.withValues(alpha: 0.8),
                                     fontSize: 11,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ],
@@ -144,47 +152,47 @@ class _StudentShellState extends State<StudentShell> {
         margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
+              color: _charcoal.withValues(alpha: 0.08),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(28),
           child: BottomNavigationBar(
             currentIndex: currentIndex,
-            onTap: (index) {
-              StudentShell.switchTab(index);
-            },
+            onTap: (index) => StudentShell.switchTab(index),
             type: BottomNavigationBarType.fixed,
             showSelectedLabels: true,
             showUnselectedLabels: true,
-            selectedFontSize: 12,
-            unselectedFontSize: 11,
+            selectedFontSize: 11,
+            unselectedFontSize: 10,
             elevation: 0,
             backgroundColor: Colors.white,
-            selectedItemColor: const Color(0xFF006C5B),
-            unselectedItemColor: Colors.grey[400],
+            selectedItemColor: _tealPrimary,
+            unselectedItemColor: _charcoal.withValues(alpha: 0.35),
+            selectedLabelStyle: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 11),
+            unselectedLabelStyle: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 10),
             items: [
               const BottomNavigationBarItem(
-                icon: Icon(Icons.explore_rounded),
-                activeIcon: Icon(Icons.explore),
+                icon: Icon(Icons.explore_outlined),
+                activeIcon: Icon(Icons.explore_rounded),
                 label: 'Discover',
               ),
               BottomNavigationBarItem(
                 icon: Badge(
                   isLabelVisible: activeOrders.isNotEmpty,
-                  backgroundColor: Colors.amber,
+                  backgroundColor: _warmAmber,
                   smallSize: 8,
                   child: const Icon(Icons.map_outlined),
                 ),
                 activeIcon: Badge(
                   isLabelVisible: activeOrders.isNotEmpty,
-                  backgroundColor: Colors.amber,
+                  backgroundColor: _warmAmber,
                   smallSize: 8,
                   child: const Icon(Icons.map_rounded),
                 ),
@@ -197,7 +205,7 @@ class _StudentShellState extends State<StudentShell> {
                     '${activeOrders.length}',
                     style: const TextStyle(fontSize: 10, color: Colors.white),
                   ),
-                  backgroundColor: const Color(0xFF006C5B),
+                  backgroundColor: _tealPrimary,
                   child: const Icon(Icons.confirmation_number_outlined),
                 ),
                 activeIcon: Badge(
@@ -206,7 +214,7 @@ class _StudentShellState extends State<StudentShell> {
                     '${activeOrders.length}',
                     style: const TextStyle(fontSize: 10, color: Colors.white),
                   ),
-                  backgroundColor: const Color(0xFF006C5B),
+                  backgroundColor: _tealPrimary,
                   child: const Icon(Icons.confirmation_number_rounded),
                 ),
                 label: 'My Pickups',
