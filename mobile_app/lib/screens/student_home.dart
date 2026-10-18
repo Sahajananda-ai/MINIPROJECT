@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/order_manager.dart';
 import 'checkout.dart';
+import 'student_shell.dart';
 
 class StudentHomeScreen extends StatefulWidget {
   const StudentHomeScreen({super.key});
@@ -24,17 +26,26 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     {'name': 'Groceries', 'icon': '🍎'},
   ];
 
+  final OrderManager _orderManager = OrderManager();
+
   @override
   void initState() {
     super.initState();
+    _orderManager.addListener(_onOrderStateChanged);
     _loadDeals();
+  }
+
+  void _onOrderStateChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _orderManager.removeListener(_onOrderStateChanged);
     _searchController.dispose();
     super.dispose();
   }
+
 
   Future<void> _loadDeals() async {
     setState(() {
@@ -156,7 +167,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                       child: Icon(
                         Icons.lunch_dining_rounded,
                         size: 90,
-                        color: Colors.white.withOpacity(0.18),
+                        color: Colors.white.withValues(alpha: 0.18),
                       ),
                     ),
                   ),
@@ -177,6 +188,11 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
                 child: Column(
                   children: [
+                    // How It Works / Active Rescue Stepper
+                    _buildHowItWorksOrActiveTracker(),
+
+                    const SizedBox(height: 12),
+
                     // AI Assistant Banner Chip
                     GestureDetector(
                       onTap: _openAiAssistant,
@@ -529,7 +545,259 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       ),
     );
   }
+
+  Widget _buildHowItWorksOrActiveTracker() {
+    final activeOrders = _orderManager.activeOrders;
+    if (activeOrders.isNotEmpty) {
+      final active = activeOrders.first;
+      return Container(
+        margin: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFE0F2F1), Color(0xFFF1F8E9)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFF006C5B).withValues(alpha: 0.3)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF006C5B),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.delivery_dining_rounded, color: Colors.white, size: 16),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      "ACTIVE FOOD RESCUE",
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.1,
+                        color: Color(0xFF006C5B),
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFF006C5B).withValues(alpha: 0.3)),
+                  ),
+                  child: Text(
+                    active.pickupCode,
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: Color(0xFF006C5B)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              "Collect from ${active.vendorName}",
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              "Show your digital pass or QR code at counter • ₹${active.paidPrice.toStringAsFixed(0)} paid",
+              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+            ),
+            const SizedBox(height: 12),
+            // Progress Bar Steps
+            Row(
+              children: [
+                _buildTrackerStep("Reserved", true),
+                _buildTrackerLine(true),
+                _buildTrackerStep("Heading to Store", true),
+                _buildTrackerLine(false),
+                _buildTrackerStep("Handover", false),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.directions_walk_rounded, size: 16),
+                    label: const Text("View Route on Radar Map", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF006C5B),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    onPressed: () {
+                      StudentShell.switchTab(1); // Jump to Radar Map
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF006C5B),
+                    side: const BorderSide(color: Color(0xFF006C5B)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  ),
+                  onPressed: () {
+                    StudentShell.switchTab(2); // Jump to My Pickups
+                  },
+                  child: const Text("Show Pass", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Default: Clean 3-Step "How SaveBite Works" Guide
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.eco_rounded, color: Color(0xFF006C5B), size: 16),
+                  SizedBox(width: 6),
+                  Text(
+                    "HOW SAVEBITE WORKS",
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.1,
+                      color: Color(0xFF006C5B),
+                    ),
+                  ),
+                ],
+              ),
+              Text(
+                "3 Easy Steps",
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(child: _buildStepCard("1. Discover", "50-70% OFF", Icons.storefront_rounded)),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4),
+                child: Icon(Icons.arrow_forward_rounded, size: 14, color: Colors.grey),
+              ),
+              Expanded(child: _buildStepCard("2. Reserve", "5-Min Lock", Icons.lock_clock_rounded)),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4),
+                child: Icon(Icons.arrow_forward_rounded, size: 14, color: Colors.grey),
+              ),
+              Expanded(child: _buildStepCard("3. Collect", "QR Passcode", Icons.qr_code_2_rounded)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTrackerStep(String label, bool isDone) {
+    return Expanded(
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 10,
+            backgroundColor: isDone ? const Color(0xFF006C5B) : Colors.grey[300],
+            child: Icon(
+              isDone ? Icons.check_rounded : Icons.circle,
+              size: 11,
+              color: isDone ? Colors.white : Colors.grey[500],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: isDone ? FontWeight.bold : FontWeight.normal,
+              color: isDone ? const Color(0xFF006C5B) : Colors.grey[600],
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTrackerLine(bool isDone) {
+    return Container(
+      width: 24,
+      height: 2,
+      color: isDone ? const Color(0xFF006C5B) : Colors.grey[300],
+    );
+  }
+
+  Widget _buildStepCard(String step, String subtext, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: const Color(0xFF006C5B), size: 18),
+          const SizedBox(height: 4),
+          Text(
+            step,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+            textAlign: TextAlign.center,
+          ),
+          Text(
+            subtext,
+            style: TextStyle(color: Colors.grey[600], fontSize: 9),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
 }
+
 
 class _DealDetailsSheet extends StatefulWidget {
   final dynamic deal;
@@ -887,18 +1155,18 @@ class _AiAssistantModalState extends State<_AiAssistantModal> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF006C5B).withOpacity(0.06),
+                color: const Color(0xFF006C5B).withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFF006C5B).withOpacity(0.3)),
+                border: Border.all(color: const Color(0xFF006C5B).withValues(alpha: 0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  const Row(
                     children: [
-                      const Icon(Icons.psychology_alt_rounded, color: Color(0xFF006C5B), size: 20),
-                      const SizedBox(width: 8),
-                      const Text(
+                      Icon(Icons.psychology_alt_rounded, color: Color(0xFF006C5B), size: 20),
+                      SizedBox(width: 8),
+                      Text(
                         "AI Recommendation",
                         style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF006C5B)),
                       ),

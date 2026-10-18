@@ -5,7 +5,7 @@ import '../services/api_service.dart';
 import '../services/location_service.dart';
 import '../services/order_manager.dart';
 import 'checkout.dart';
-import 'student_orders.dart';
+import 'student_shell.dart';
 
 class StudentMapScreen extends StatefulWidget {
   const StudentMapScreen({super.key});
@@ -308,14 +308,14 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                                   BoxShadow(color: Colors.black38, blurRadius: 8, offset: Offset(0, 4)),
                                 ],
                               ),
-                              child: Row(
+                              child: const Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.verified_rounded, color: Colors.white, size: 14),
-                                  const SizedBox(width: 4),
+                                  Icon(Icons.verified_rounded, color: Colors.white, size: 14),
+                                  SizedBox(width: 4),
                                   Text(
                                     "COLLECT HERE",
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
@@ -452,9 +452,9 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
+                            const Text(
                               "1 Mystery Box Ready for Pickup!",
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
                             ),
                             Text(
                               "${activeOrders.first.vendorName} • Tap to view shop route",
@@ -731,10 +731,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                 ),
                 ElevatedButton.icon(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const StudentOrdersScreen()),
-                    );
+                    StudentShell.switchTab(2);
                   },
                   icon: const Icon(Icons.qr_code_2_rounded, size: 18),
                   label: const Text("View Pass"),

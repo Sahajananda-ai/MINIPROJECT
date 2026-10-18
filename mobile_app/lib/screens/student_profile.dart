@@ -45,7 +45,7 @@ class StudentProfileScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: Colors.black.withValues(alpha: 0.04),
                     blurRadius: 15,
                     offset: const Offset(0, 5),
                   ),
@@ -55,7 +55,7 @@ class StudentProfileScreen extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 32,
-                    backgroundColor: const Color(0xFF006C5B).withOpacity(0.12),
+                    backgroundColor: const Color(0xFF006C5B).withValues(alpha: 0.12),
                     child: const Icon(Icons.person_rounded, size: 36, color: Color(0xFF006C5B)),
                   ),
                   const SizedBox(width: 16),
@@ -76,7 +76,7 @@ class StudentProfileScreen extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.12),
+                            color: Colors.orange.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Text(
@@ -105,7 +105,7 @@ class StudentProfileScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF006C5B).withOpacity(0.3),
+                    color: const Color(0xFF006C5B).withValues(alpha: 0.3),
                     blurRadius: 15,
                     offset: const Offset(0, 8),
                   ),
@@ -127,16 +127,16 @@ class StudentProfileScreen extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     "Together with local shops, you are diverting surplus food from landfills.",
-                    style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 13),
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13),
                   ),
                   const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       _buildImpactItem("🌱", "$mealsRescued", "Meals\nRescued"),
-                      Container(height: 40, width: 1, color: Colors.white.withOpacity(0.2)),
+                      Container(height: 40, width: 1, color: Colors.white.withValues(alpha: 0.2)),
                       _buildImpactItem("💰", "₹$totalSaved", "Money\nSaved"),
-                      Container(height: 40, width: 1, color: Colors.white.withOpacity(0.2)),
+                      Container(height: 40, width: 1, color: Colors.white.withValues(alpha: 0.2)),
                       _buildImpactItem("🌍", "${co2Prevented}kg", "CO₂\nAvoided"),
                     ],
                   ),
@@ -211,7 +211,7 @@ class StudentProfileScreen extends StatelessWidget {
         Text(
           label,
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 11),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 11),
         ),
       ],
     );
@@ -236,7 +236,7 @@ class StudentProfileScreen extends StatelessWidget {
         leading: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.12),
+            color: color.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(14),
           ),
           child: Icon(icon, color: color, size: 24),

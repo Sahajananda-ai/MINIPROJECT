@@ -151,7 +151,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 bottomRight: Radius.circular(50),
               ),
               boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 30, offset: const Offset(0, 10)),
+                BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 30, offset: const Offset(0, 10)),
               ],
             ),
             child: Container(
@@ -164,7 +164,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
                   colors: [
-                    Colors.black.withOpacity(0.4),
+                    Colors.black.withValues(alpha: 0.4),
                     Colors.transparent,
                   ],
                 ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/order_manager.dart';
 import '../services/api_service.dart';
+import 'student_shell.dart';
 
 class StudentOrdersScreen extends StatefulWidget {
   const StudentOrdersScreen({super.key});
@@ -137,6 +138,18 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.grey[600], fontSize: 13),
                     ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () => StudentShell.switchTab(0),
+                      icon: const Icon(Icons.explore_outlined, size: 18),
+                      label: const Text("Explore Mystery Boxes"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF006C5B),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      ),
+                    ),
                   ],
                 ),
               )
@@ -185,12 +198,12 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF006C5B).withOpacity(0.08),
+            color: const Color(0xFF006C5B).withValues(alpha: 0.08),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
         ],
-        border: Border.all(color: const Color(0xFF006C5B).withOpacity(0.3), width: 1.5),
+        border: Border.all(color: const Color(0xFF006C5B).withValues(alpha: 0.3), width: 1.5),
       ),
       child: Column(
         children: [
@@ -198,7 +211,7 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
-              color: const Color(0xFF006C5B).withOpacity(0.08),
+              color: const Color(0xFF006C5B).withValues(alpha: 0.08),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
             ),
             child: Row(
@@ -309,20 +322,37 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
 
                 const SizedBox(height: 16),
 
-                // Action Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 46,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _confirmPickup(order),
-                    icon: const Icon(Icons.check_circle_outline),
-                    label: const Text("I Have Collected This Box"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF006C5B),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                // Dual Action Buttons: View Route on Radar Map + Collected confirmation
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => StudentShell.switchTab(1),
+                        icon: const Icon(Icons.navigation_outlined, size: 18),
+                        label: const Text("View Route"),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF006C5B),
+                          side: const BorderSide(color: Color(0xFF006C5B)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _confirmPickup(order),
+                        icon: const Icon(Icons.check_circle_outline, size: 18),
+                        label: const Text("Collected!"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF006C5B),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -346,7 +376,7 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
+              color: Colors.green.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(Icons.eco_rounded, color: Colors.green, size: 24),

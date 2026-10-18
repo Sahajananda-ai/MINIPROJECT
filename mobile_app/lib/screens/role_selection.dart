@@ -76,7 +76,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
+                          color: Colors.white.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.restaurant_menu,
@@ -98,7 +98,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                         'Choose your role to get started',
                         style: TextStyle(
                           fontSize: 16,
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                         ),
                       ),
                     ],
@@ -141,7 +141,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                   child: Text(
                     'You can switch roles anytime from settings',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.6),
+                      color: Colors.white.withValues(alpha: 0.6),
                       fontSize: 13,
                     ),
                   ),
@@ -184,7 +184,7 @@ class _RoleCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: gradient[0].withOpacity(0.4),
+                color: gradient[0].withValues(alpha: 0.4),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -195,7 +195,7 @@ class _RoleCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(icon, size: 32, color: Colors.white),
@@ -218,14 +218,14 @@ class _RoleCard extends StatelessWidget {
                       subtitle,
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.white.withOpacity(0.85),
+                        color: Colors.white.withValues(alpha: 0.85),
                       ),
                     ),
                   ],
                 ),
               ),
               Icon(Icons.arrow_forward_ios,
-                  color: Colors.white.withOpacity(0.7), size: 18),
+                  color: Colors.white.withValues(alpha: 0.7), size: 18),
             ],
           ),
         ),
