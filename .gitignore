@@ -33,11 +33,12 @@ build/
 .DS_Store
 Thumbs.db
 
-# Node / Web
+# Node / Mobile App
 node_modules/
-web_app/dist/
-web_app/node_modules/
+mobile_app/dist/
+mobile_app/node_modules/
 
 # Agent/Local configuration
 .agents/
 PRD.md
+mobile_app_flutter_backup/
