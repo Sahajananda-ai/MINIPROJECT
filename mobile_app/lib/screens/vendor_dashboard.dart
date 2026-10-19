@@ -291,10 +291,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
   }
 
   void _openRedeemDialog() {
-    final activeOrders = OrderManager().activeOrders;
-    final TextEditingController passCodeCtrl = TextEditingController(
-      text: activeOrders.isNotEmpty ? activeOrders.first.pickupCode : "",
-    );
+    final TextEditingController passCodeCtrl = TextEditingController();
     String? dialogError;
     bool isVerifying = false;
 
@@ -367,55 +364,27 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                       ),
                     ),
                   ],
-                  if (activeOrders.isNotEmpty) ...[
-                    const SizedBox(height: 18),
-                    const Text(
-                      "Pending Customer Pickups (Ready):",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF006C5B)),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F0E8),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFD4C9B8)),
                     ),
-                    const SizedBox(height: 8),
-                    ...activeOrders.map((order) {
-                      return InkWell(
-                        onTap: () {
-                          setDialogState(() {
-                            passCodeCtrl.text = order.pickupCode;
-                            dialogError = null;
-                          });
-                        },
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE0F2F1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFF006C5B).withValues(alpha: 0.3)),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    order.pickupCode,
-                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF006C5B)),
-                                  ),
-                                  Text(
-                                    "${order.vendorName} • ₹${order.paidPrice}",
-                                    style: TextStyle(fontSize: 11, color: Colors.grey[700]),
-                                  ),
-                                ],
-                              ),
-                              const Text(
-                                "Tap to select",
-                                style: TextStyle(fontSize: 11, color: Color(0xFF006C5B), fontWeight: FontWeight.w600),
-                              ),
-                            ],
+                    child: const Row(
+                      children: [
+                        Icon(Icons.info_outline_rounded, color: Color(0xFF006C5B), size: 18),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            "Ask the customer to show their SaveBite pickup pass. The code looks like: MB-41-7291",
+                            style: TextStyle(fontSize: 12, color: Color(0xFF6B5D52)),
                           ),
                         ),
-                      );
-                    }),
-                  ],
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -667,18 +636,20 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                   child: const Icon(Icons.auto_awesome, color: Color(0xFF006C5B), size: 22),
                 ),
                 const SizedBox(width: 10),
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "AI Mystery Box Curator",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      "Add surplus items/photos • AI generates description keeping contents secret",
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "AI Mystery Box Curator",
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        "Add surplus items/photos • AI generates description keeping contents secret",
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

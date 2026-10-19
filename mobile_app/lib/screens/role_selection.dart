@@ -114,11 +114,12 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
           ),
 
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               child: Column(
                 children: [
-                  const SizedBox(height: 50),
+                  const SizedBox(height: 12),
 
                   // Logo + Header
                   SlideTransition(
@@ -129,8 +130,8 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                         children: [
                           // Branded Logo Circle
                           Container(
-                            width: 80,
-                            height: 80,
+                            width: 72,
+                            height: 72,
                             decoration: BoxDecoration(
                               color: _tealPrimary,
                               shape: BoxShape.circle,
@@ -142,25 +143,25 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                                 ),
                               ],
                             ),
-                            child: const Icon(Icons.eco_rounded, size: 38, color: Colors.white),
+                            child: const Icon(Icons.eco_rounded, size: 36, color: Colors.white),
                           ),
-                          const SizedBox(height: 28),
+                          const SizedBox(height: 20),
                           Text(
                             'How will you use\nSaveBite?',
                             textAlign: TextAlign.center,
                             style: GoogleFonts.playfairDisplay(
-                              fontSize: 32,
+                              fontSize: 30,
                               fontWeight: FontWeight.w800,
                               color: _charcoal,
                               height: 1.15,
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 8),
                           Text(
                             'Choose your role to get started',
                             style: GoogleFonts.inter(
-                              fontSize: 16,
-                              color: _charcoal.withValues(alpha: 0.5),
+                              fontSize: 15,
+                              color: _charcoal.withValues(alpha: 0.55),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -169,7 +170,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                     ),
                   ),
 
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 28),
 
                   // Student Card
                   SlideTransition(
@@ -187,7 +188,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                     ),
                   ),
 
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 16),
 
                   // Vendor Card
                   SlideTransition(
@@ -205,13 +206,13 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                     ),
                   ),
 
-                  const Spacer(),
+                  const SizedBox(height: 24),
 
                   // Footer
                   FadeTransition(
                     opacity: _fadeIn,
                     child: Padding(
-                      padding: const EdgeInsets.only(bottom: 24),
+                      padding: const EdgeInsets.only(bottom: 16),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -221,7 +222,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                             'You can switch roles anytime from settings',
                             style: GoogleFonts.inter(
                               color: _charcoal.withValues(alpha: 0.4),
-                              fontSize: 13,
+                              fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
                           ),

@@ -252,10 +252,14 @@ SLIDE 14: EXISTING SYSTEM
 Title: Existing System Architecture & Failure Modes
 Layout: Left Column (Current Architecture) vs Right Column (Concrete Failure Scenario)
 
-Left Column: Current Landscape
-• Commercial Delivery Marketplaces: Focus strictly on high-margin, freshly cooked food with centralized motorized logistics.
+Left Column: Current Landscape & Competitor Limitations
+• Commercial Delivery Marketplaces (Swiggy, Zomato): Focus strictly on high-margin, freshly cooked food with centralized motorized logistics (30–40% commissions).
+• Early Indian Surplus Startups (Plenti, Good To Grab, Gone Good): Suffer from 4 critical pain points:
+  1. Dietary Purity Fear: Lack of strict FSSAI Pure Veg / Jain segregation causes high abandonment.
+  2. Static Markdown Flaw: Flat 30–40% discounts fail to clear remaining food 30 minutes before closing.
+  3. Flash Sale Race Conditions: Relational database contention causes phantom bookings and double charges.
+  4. Logistical Blindspot: No pedestrian walking navigation, leading to missed 15-minute pickup curfews.
 • Manual Surplus Clearance: Bakers write paper markdown tags or discard unsold stock at 10:00 PM.
-• Static Web Portals: Food donation sites require manual phone coordination and lack real-time stock sync.
 
 Right Column: Illustrative Real-World Failure Scenario
 Time: 09:15 PM (Bakery closes at 10:00 PM)

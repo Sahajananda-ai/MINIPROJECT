@@ -1,0 +1,108 @@
+/* ═══════════════════════════════════════════════════════════════
+   SaveBite Design Tokens — Generated from replica/design/tokens.json
+   Warm matte papermorphism · Pizza Amici + Batch aesthetic
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ─── Colour Roles ─── */
+  --bg:               #F5F0E8;
+  --bg-warm:          #EDE6DA;
+  --surface:          #FFFDF9;
+  --surface-raised:   #FFFFFF;
+  --border:           #D4C9B8;
+  --border-input:     #C2B5A0;
+  --text:             #2B1D15;
+  --text-muted:       #6B5D52;
+  --text-subtle:      #9A8D82;
+  --accent:           #006C5B;
+  --accent-hover:     #005A4B;
+  --accent-subtle:    #E6F2EF;
+  --on-accent:        #FFFFFF;
+  --secondary:        #FF8C42;
+  --secondary-hover:  #E87A35;
+  --on-secondary:     #FFFFFF;
+  --danger:           #D94040;
+  --danger-subtle:    #FFF0F0;
+  --success:          #2E7D32;
+  --success-subtle:   #E8F5E9;
+  --warning:          #F9A825;
+  --warning-subtle:   #FFF8E1;
+
+  /* ─── Semantic ─── */
+  --card-bg:          #FFFDF9;
+  --card-shadow:      rgba(43, 29, 21, 0.08);
+  --overlay:          rgba(43, 29, 21, 0.5);
+  --shimmer-base:     #EDE6DA;
+  --shimmer-highlight:#F5F0E8;
+  --sold-out-overlay: rgba(43, 29, 21, 0.35);
+
+  /* ─── Typography ─── */
+  --font-display:     'Playfair Display', serif;
+  --font-body:        'Inter', sans-serif;
+  --font-mono:        'Azeret Mono', monospace;
+
+  --fs-xs:   11px;
+  --fs-sm:   13px;
+  --fs-base: 15px;
+  --fs-md:   17px;
+  --fs-lg:   20px;
+  --fs-xl:   24px;
+  --fs-2xl:  30px;
+  --fs-3xl:  40px;
+
+  /* ─── Spacing (4px base) ─── */
+  --sp-0:  0px;
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-5:  20px;
+  --sp-6:  24px;
+  --sp-8:  32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+  --sp-14: 56px;
+  --sp-16: 64px;
+  --sp-20: 80px;
+  --sp-24: 96px;
+  --sp-30: 120px;
+
+  /* ─── Radius ─── */
+  --radius-none: 0px;
+  --radius-sm:   8px;
+  --radius-md:   14px;
+  --radius-lg:   20px;
+  --radius-xl:   28px;
+  --radius-pill:  999px;
+  --radius-card:  24px;
+  --radius-card-inner: 16px;
+
+  /* ─── Shadow ─── */
+  --shadow-sm:   0 2px 8px rgba(43,29,21,0.06);
+  --shadow-md:   0 4px 16px rgba(43,29,21,0.08);
+  --shadow-lg:   0 8px 30px rgba(43,29,21,0.12);
+  --shadow-xl:   0 15px 50px rgba(43,29,21,0.15);
+  --shadow-glow-accent:    0 4px 20px rgba(0,108,91,0.25);
+  --shadow-glow-secondary: 0 4px 20px rgba(255,140,66,0.3);
+
+  /* ─── Motion ─── */
+  --ease-default:  cubic-bezier(0.4, 0.0, 0.2, 1);
+  --ease-enter:    cubic-bezier(0.0, 0.0, 0.2, 1);
+  --ease-exit:     cubic-bezier(0.4, 0.0, 1, 1);
+  --ease-bounce:   cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --dur-fast:   150ms;
+  --dur-normal: 300ms;
+  --dur-slow:   500ms;
+  --dur-enter:  400ms;
+  --dur-exit:   250ms;
+
+  /* ─── Layout ─── */
+  --max-width:        428px;
+  --header-height:    56px;
+  --bottom-nav-height:72px;
+  --card-gap:         16px;
+  --section-padding:  24px;
+  --safe-area-bottom: 34px;
+}

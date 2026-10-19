@@ -61,6 +61,12 @@ class OrderManager extends ChangeNotifier {
   List<MysteryBoxOrder> get completedOrders =>
       _orders.where((o) => o.isCollected).toList();
 
+  /// Returns true if the student already has an active (uncollected) order for this deal.
+  /// Prevents duplicate reservations on the frontend side.
+  bool hasActiveOrderForDeal(int dealId) {
+    return _orders.any((o) => o.dealId == dealId && !o.isCollected);
+  }
+
   double get totalSavings => _orders.fold(
       0.0, (sum, o) => sum + (o.originalValue - o.paidPrice));
 

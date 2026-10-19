@@ -1,0 +1,36 @@
+feature,area,priority,original,clone,notes
+Location-based store discovery,discover,must,yes,yes,flutter_map + geolocator already wired
+Map view with store pins,discover,must,yes,yes,S05 exists in Flutter app
+List view with deal cards,discover,must,yes,yes,S04 exists
+Store detail page with bag info,store,must,yes,yes,S06 exists
+Surprise Bag reservation,checkout,must,yes,yes,S07 backend wired
+Pickup code generation,checkout,must,yes,yes,backend generates MB-{deal}-{random}
+Pickup window display,store,must,yes,yes,shown on deal cards
+Strict inventory enforcement,checkout,must,yes,partial,bug: over-reservation still possible — fix needed
+Vendor dashboard,vendor,must,yes,yes,S14 exists
+Vendor pickup code verification,vendor,must,yes,partial,bug: accepts random codes — fix needed
+Walking route to store,discover,must,yes,partial,bug: routes not rendering properly — fix needed
+Order history (student),orders,must,yes,yes,S09 exists
+Onboarding flow,onboarding,must,yes,yes,S02 exists with animations
+Role selection (student/vendor),auth,must,yes,yes,S03 exists
+Category filtering,discover,must,yes,yes,chips on S04
+Deal card sold-out state,discover,must,yes,yes,greyed out when quantity=0
+Pickup countdown timer,orders,must,yes,yes,live timer countdown on active pickup card
+Decay pricing (time-based discount),pricing,must,yes,yes,backend periodic job runs every 15min
+Favourites / saved stores,favourites,should,yes,no,heart toggle + favourites tab
+Push notifications for favourite stores,notifications,should,yes,no,requires FCM setup
+Ask-a-Friend share pickup,orders,should,yes,no,share pickup code link
+Star rating after pickup,feedback,should,yes,yes,interactive 5-star review modal with tags
+Impact dashboard (meals saved / CO2),gamification,should,yes,yes,campus impact summary header bar
+Payment integration (Razorpay),payments,should,yes,no,currently simulated
+Search by store name,discover,should,yes,yes,search bar on S04
+Email confirmation on order,notifications,should,yes,no,transactional email
+Vendor analytics / revenue,vendor,could,yes,no,charts in vendor dashboard
+Multi-store management,vendor,could,yes,no,enterprise feature
+Dietary preference filters,discover,could,yes,yes,veg/vegan/jain chips on S04
+Dark mode,ui,could,yes,no,theme toggle
+Swipe-to-collect gesture,orders,could,yes,no,satisfying UX moment
+Time zone detection,booking,could,yes,no,irrelevant for single-city campus
+TGTG's 200K+ store network,network,skip,yes,no,their moat — not a feature to clone
+Enterprise AI expiry management,platform,skip,yes,no,out of scope for campus project
+Partner payment deals,business,skip,yes,no,their business relationships

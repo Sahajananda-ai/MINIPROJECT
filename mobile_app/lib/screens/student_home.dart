@@ -14,6 +14,7 @@ class StudentHomeScreen extends StatefulWidget {
 
 class _StudentHomeScreenState extends State<StudentHomeScreen> {
   String _selectedCategory = 'All';
+  String _selectedDietary = 'All';
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
   List<dynamic> _deals = [];
@@ -25,6 +26,13 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     {'name': 'Cafe', 'icon': '☕'},
     {'name': 'Meals', 'icon': '🍛'},
     {'name': 'Groceries', 'icon': '🍎'},
+  ];
+
+  final List<Map<String, String>> _dietaryFilters = const [
+    {'name': 'All', 'label': '✨ All Diets'},
+    {'name': 'Pure Veg', 'label': '🌱 100% Pure Veg'},
+    {'name': 'Vegan', 'label': '🥛 Vegan Safe'},
+    {'name': 'Jain-Friendly', 'label': '🧅 Jain Friendly'},
   ];
 
   final OrderManager _orderManager = OrderManager();
@@ -74,12 +82,16 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       final vendor = deal['vendor'] ?? {};
       final name = (vendor['name'] ?? '').toString().toLowerCase();
       final category = (vendor['shop_category'] ?? '').toString().toLowerCase();
+      final dietaryTag = (deal['dietary_tag'] ?? '').toString().toLowerCase();
       final query = _searchQuery.toLowerCase();
 
       final matchesSearch = query.isEmpty || name.contains(query) || category.contains(query);
       final matchesCategory = _selectedCategory == 'All' || category.contains(_selectedCategory.toLowerCase());
+      final matchesDietary = _selectedDietary == 'All' ||
+          dietaryTag.contains(_selectedDietary.toLowerCase()) ||
+          (_selectedDietary == 'Pure Veg' && (dietaryTag.contains('veg') || dietaryTag.contains('vegetarian')));
 
-      return matchesSearch && matchesCategory;
+      return matchesSearch && matchesCategory && matchesDietary;
     }).toList();
   }
 
@@ -302,7 +314,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
             // Horizontal Categories Selector
             SliverToBoxAdapter(
               child: SizedBox(
-                height: 50,
+                height: 44,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -326,7 +338,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                         labelStyle: TextStyle(
                           color: isSelected ? Colors.white : Colors.black87,
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          fontSize: 13,
+                          fontSize: 12,
                         ),
                         backgroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
@@ -338,6 +350,52 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                       ),
                     );
                   },
+                ),
+              ),
+            ),
+
+            // Horizontal Dietary Shield Chips (Pure Veg / Vegan / Jain-Friendly)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 6.0),
+                child: SizedBox(
+                  height: 36,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _dietaryFilters.length,
+                    itemBuilder: (context, index) {
+                      final diet = _dietaryFilters[index];
+                      final isSelected = _selectedDietary == diet['name'];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: ChoiceChip(
+                          label: Text(diet['label']!),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            if (selected) {
+                              setState(() {
+                                _selectedDietary = diet['name']!;
+                              });
+                            }
+                          },
+                          selectedColor: const Color(0xFF2E7D32),
+                          labelStyle: TextStyle(
+                            color: isSelected ? Colors.white : Colors.green.shade900,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                            fontSize: 11,
+                          ),
+                          backgroundColor: const Color(0xFFE8F5E9),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(
+                              color: isSelected ? const Color(0xFF2E7D32) : Colors.green.shade200,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
@@ -917,10 +975,27 @@ class _DealDetailsSheetState extends State<_DealDetailsSheet> {
   bool _isReserving = false;
 
   void _reserve() async {
+    final int dealId = (widget.deal['id'] as num?)?.toInt() ?? 0;
     final int quantity = (widget.deal['quantity'] as num?)?.toInt() ?? 0;
+
+    // Guard 1: Check local quantity from the fetched deal data
     if (quantity <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Sorry, this mystery box is already sold out!")),
+        const SnackBar(
+          content: Text("Sorry, this mystery box is already sold out!"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Guard 2: Check if student already has an active order for this deal
+    if (OrderManager().hasActiveOrderForDeal(dealId)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("You already have an active reservation for this box! Check your Orders tab."),
+          backgroundColor: Colors.deepOrange,
+        ),
       );
       return;
     }
@@ -930,7 +1005,7 @@ class _DealDetailsSheetState extends State<_DealDetailsSheet> {
     });
 
     final res = await ApiService.reserveDeal(
-      dealId: widget.deal['id'],
+      dealId: dealId,
       studentId: 1,
     );
 
@@ -952,9 +1027,15 @@ class _DealDetailsSheetState extends State<_DealDetailsSheet> {
         ),
       );
     } else {
-      final msg = res != null ? res['detail'] ?? res['message'] : "Failed to reserve deal.";
+      // Handle 409 (sold out) or other backend errors clearly
+      final msg = res != null
+          ? (res['detail'] ?? res['message'] ?? "Failed to reserve deal.")
+          : "Backend unreachable. Please check connection.";
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg.toString())),
+        SnackBar(
+          content: Text(msg.toString()),
+          backgroundColor: Colors.red.shade700,
+        ),
       );
     }
   }

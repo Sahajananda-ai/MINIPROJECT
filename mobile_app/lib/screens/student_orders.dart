@@ -101,8 +101,131 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
             ),
           ),
         );
+        // Prompt for community trust rating
+        _showRatingDialog(order);
       }
     }
+  }
+
+  void _showRatingDialog(MysteryBoxOrder order) {
+    int selectedRating = 5;
+    final List<String> feedbackTags = [
+      "Fresh & Delicious",
+      "Huge Savings",
+      "Clean Packaging",
+      "Friendly Staff"
+    ];
+    final Set<String> selectedTags = {"Fresh & Delicious", "Huge Savings"};
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setRatingState) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _tealPrimary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.star_rounded, color: _warmAmber, size: 36),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                "Rate Your Rescue!",
+                style: GoogleFonts.playfairDisplay(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  color: _charcoal,
+                ),
+              ),
+              Text(
+                "How was the surplus box from ${order.vendorName}?",
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(color: Colors.black54, fontSize: 12),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 5 Star Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (idx) {
+                  final starNum = idx + 1;
+                  return IconButton(
+                    onPressed: () {
+                      setRatingState(() {
+                        selectedRating = starNum;
+                      });
+                    },
+                    icon: Icon(
+                      starNum <= selectedRating ? Icons.star_rounded : Icons.star_border_rounded,
+                      color: _warmAmber,
+                      size: 32,
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                alignment: WrapAlignment.center,
+                children: feedbackTags.map((tag) {
+                  final isTagSelected = selectedTags.contains(tag);
+                  return FilterChip(
+                    label: Text(tag, style: const TextStyle(fontSize: 11)),
+                    selected: isTagSelected,
+                    selectedColor: _tealPrimary.withValues(alpha: 0.15),
+                    checkmarkColor: _tealPrimary,
+                    onSelected: (val) {
+                      setRatingState(() {
+                        if (val) {
+                          selectedTags.add(tag);
+                        } else {
+                          selectedTags.remove(tag);
+                        }
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("Skip"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    backgroundColor: _tealPrimary,
+                    content: Text(
+                      "⭐ Thank you! Your $selectedRating-star review builds campus food rescue trust.",
+                      style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _tealPrimary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text("Submit Review"),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -130,6 +253,10 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ─── Environmental Impact Summary Bar ───
+            _buildImpactSummaryBar(activeOrders.length, pastOrders.length),
+            const SizedBox(height: 20),
+
             // Active Pickups Section Header
             Row(
               children: [
@@ -282,6 +409,9 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
 
   Widget _buildActiveOrderCard(MysteryBoxOrder order) {
     final savings = (order.originalValue - order.paidPrice).toStringAsFixed(0);
+    final remainingMinutes = order.closingTime.difference(DateTime.now()).inMinutes;
+    final isUrgent = remainingMinutes <= 30;
+    final countdownText = remainingMinutes > 0 ? "$remainingMinutes mins left" : "Window ending soon";
 
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
@@ -299,27 +429,52 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
       ),
       child: Column(
         children: [
-          // Banner strip
+          // Banner strip with Live Countdown Timer
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
-              color: _tealPrimary.withValues(alpha: 0.08),
+              color: isUrgent ? const Color(0xFFFFF3E0) : _tealPrimary.withValues(alpha: 0.08),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border(bottom: BorderSide(color: isUrgent ? Colors.orange.shade200 : _tealPrimary.withValues(alpha: 0.15))),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.timer_outlined, size: 18, color: _tealPrimary),
-                    const SizedBox(width: 8),
-                    Text(
-                      "Pickup before ${order.closingTime.hour}:${order.closingTime.minute.toString().padLeft(2, '0')}",
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w700,
-                        color: _tealPrimary,
-                        fontSize: 13,
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: isUrgent ? Colors.deepOrange.withValues(alpha: 0.15) : _tealPrimary.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
                       ),
+                      child: Icon(
+                        isUrgent ? Icons.alarm_on_rounded : Icons.timer_outlined,
+                        size: 16,
+                        color: isUrgent ? Colors.deepOrange : _tealPrimary,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Pickup before ${order.closingTime.hour}:${order.closingTime.minute.toString().padLeft(2, '0')}",
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w700,
+                            color: _charcoal,
+                            fontSize: 12,
+                          ),
+                        ),
+                        Text(
+                          "⏳ $countdownText",
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w800,
+                            color: isUrgent ? Colors.deepOrange : _tealPrimary,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -543,6 +698,86 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildImpactSummaryBar(int activeCount, int pastCount) {
+    final totalBoxes = activeCount + pastCount;
+    final totalSavings = 280.0 * (totalBoxes > 0 ? totalBoxes : 1);
+    final co2Kg = (totalSavings * 0.015).toStringAsFixed(1);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF004D40), Color(0xFF006C5B)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF006C5B).withValues(alpha: 0.25),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.eco_rounded, color: Color(0xFF80CBC4), size: 16),
+              const SizedBox(width: 8),
+              Text(
+                "YOUR CAMPUS RESCUE IMPACT",
+                style: GoogleFonts.inter(
+                  color: const Color(0xFF80CBC4),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildImpactStatItem("${totalBoxes > 0 ? totalBoxes : 1}", "Boxes Rescued"),
+              Container(width: 1, height: 28, color: Colors.white24),
+              _buildImpactStatItem("₹${totalSavings.toStringAsFixed(0)}", "Cash Saved"),
+              Container(width: 1, height: 28, color: Colors.white24),
+              _buildImpactStatItem("$co2Kg kg", "CO₂ Avoided"),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImpactStatItem(String val, String label) {
+    return Column(
+      children: [
+        Text(
+          val,
+          style: GoogleFonts.inter(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: GoogleFonts.inter(
+            color: Colors.white70,
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 }
