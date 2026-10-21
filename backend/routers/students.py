@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
+from ..dependencies import get_current_user
 
 router = APIRouter(
     prefix="/students",
@@ -31,7 +32,17 @@ def get_student(student_id: int, db: Session = Depends(get_db)):
     return student
 
 @router.put("/{student_id}/location")
-def update_student_location(student_id: int, latitude: float, longitude: float, db: Session = Depends(get_db)):
+def update_student_location(
+    student_id: int,
+    latitude: float,
+    longitude: float,
+    db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user),
+):
+    # A student may only update their own location, never someone else's.
+    if user["role"] != "student" or user["id"] != student_id:
+        raise HTTPException(status_code=403, detail="You can only update your own location.")
+
     student = db.query(models.Student).filter(models.Student.id == student_id).first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")

@@ -15,10 +15,30 @@ def init_database_and_migrations():
         models.Base.metadata.create_all(bind=engine)
         with engine.connect() as conn:
             migration_sqls = [
+                # Deals: AI curation columns
                 "ALTER TABLE deals ADD COLUMN IF NOT EXISTS title VARCHAR DEFAULT 'Surplus Mystery Box';",
                 "ALTER TABLE deals ADD COLUMN IF NOT EXISTS description TEXT;",
                 "ALTER TABLE deals ADD COLUMN IF NOT EXISTS dietary_tag VARCHAR DEFAULT 'Vegetarian';",
-                "ALTER TABLE deals ADD COLUMN IF NOT EXISTS image_url VARCHAR;"
+                "ALTER TABLE deals ADD COLUMN IF NOT EXISTS image_url VARCHAR;",
+                # Auth columns
+                "ALTER TABLE students ADD COLUMN IF NOT EXISTS password_hash VARCHAR;",
+                "ALTER TABLE vendors ADD COLUMN IF NOT EXISTS email VARCHAR;",
+                "ALTER TABLE vendors ADD COLUMN IF NOT EXISTS password_hash VARCHAR;",
+                # Idempotency key for order creation
+                "ALTER TABLE orders ADD COLUMN IF NOT EXISTS client_request_id VARCHAR;",
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_orders_client_request_id ON orders (client_request_id);",
+                # Idempotency: one live order per student per deal
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_orders_live_deal_student ON orders (deal_id, student_id) "
+                "WHERE status IN ('RESERVED', 'PAID');",
+                # Timezone correctness: convert naive UTC timestamps to timestamptz
+                "ALTER TABLE deals ALTER COLUMN closing_time TYPE timestamptz "
+                "USING closing_time AT TIME ZONE 'UTC';",
+                "ALTER TABLE deals ALTER COLUMN created_at TYPE timestamptz "
+                "USING created_at AT TIME ZONE 'UTC';",
+                "ALTER TABLE orders ALTER COLUMN reserved_at TYPE timestamptz "
+                "USING reserved_at AT TIME ZONE 'UTC';",
+                "ALTER TABLE orders ALTER COLUMN collected_at TYPE timestamptz "
+                "USING collected_at AT TIME ZONE 'UTC';",
             ]
             for sql in migration_sqls:
                 conn.execute(text(sql))

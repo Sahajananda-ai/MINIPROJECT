@@ -40,3 +40,6 @@ mobile_app_react/
 # Agent/Local configuration
 .agents/
 PRD.md
+
+# Scratch demo screenshots (curated copies live in docs/)
+screenshots/

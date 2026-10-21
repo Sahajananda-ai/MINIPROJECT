@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/order_manager.dart';
+import '../services/session_service.dart';
 import 'role_selection.dart';
 
 class VendorDashboardScreen extends StatefulWidget {
@@ -255,7 +256,6 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
     bool success = false;
     try {
       success = await ApiService.createMysteryBox(
-        vendorId: 1,
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
         dietaryTag: _dietaryTagController.text.trim(),
@@ -327,7 +327,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                     controller: passCodeCtrl,
                     textCapitalization: TextCapitalization.characters,
                     decoration: InputDecoration(
-                      labelText: "Customer Pass Code (e.g. SB-4821)",
+                      labelText: "Customer Pass Code (e.g. SB-4F9K2XQ1)",
                       hintText: "Enter pass code",
                       prefixIcon: const Icon(Icons.confirmation_number_outlined, color: Color(0xFF006C5B)),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
@@ -378,7 +378,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                         SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            "Ask the customer to show their SaveBite pickup pass. The code looks like: MB-41-7291",
+                            "Ask the customer to show their SaveBite pickup pass. The code looks like: SB-4F9K2XQ1",
                             style: TextStyle(fontSize: 12, color: Color(0xFF6B5D52)),
                           ),
                         ),
@@ -428,7 +428,6 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
 
                         // Call strict database verification API
                         final verifyRes = await ApiService.verifyPickupCode(
-                          vendorId: 1,
                           pickupCode: input,
                         );
 
@@ -436,10 +435,13 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
 
                         if (verifyRes['success'] == true) {
                           final orderData = verifyRes['order'] ?? {};
-                          final dealId = (orderData['deal_id'] as num?)?.toInt() ?? 41;
+                          final dealId = (orderData['deal_id'] as num?)?.toInt();
 
-                          OrderManager().markOrderCollected(dealId);
-                          OrderManager().markOrderCollectedByCode(input);
+                          // The server is the authority on status; this keeps the
+                          // student's local view in sync if both run on one device.
+                          if (dealId != null) {
+                            OrderManager().markOrderCollected(dealId);
+                          }
 
                           Navigator.pop(ctx); // Close dialog
 
@@ -510,8 +512,8 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text("Student ID:", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                      Text("Student #${order['student_id'] ?? '1'}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                      const Text("Student:", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      Text(order['student_name'] as String? ?? "Campus Student", style: const TextStyle(fontWeight: FontWeight.bold)),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -589,7 +591,8 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Store Info Card
+            // Store Info Card — identity comes from the signed-in session, so
+            // it always matches the account actually creating the listings.
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -597,26 +600,30 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.grey[200]!),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  CircleAvatar(
+                  const CircleAvatar(
                     radius: 26,
                     backgroundColor: Color(0xFFE0F2F1),
                     child: Icon(Icons.storefront_rounded, color: Color(0xFF006C5B), size: 28),
                   ),
-                  SizedBox(width: 14),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Gupta Sweets & Bakery",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      Text(
-                        "FSSAI: 11519024000111 • ⭐ 5.0",
-                        style: TextStyle(color: Colors.grey, fontSize: 13),
-                      ),
-                    ],
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          SessionService().name ?? 'Your Shop',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          SessionService().email ?? '',
+                          style: const TextStyle(color: Colors.grey, fontSize: 13),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),

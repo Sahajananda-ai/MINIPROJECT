@@ -24,6 +24,9 @@ dependencies:
   
   # For state management
   provider: ^6.1.1
+
+  # For persisting the signed-in session across restarts
+  shared_preferences: ^2.2.0
   
   # For premium typography
   google_fonts: ^6.1.0

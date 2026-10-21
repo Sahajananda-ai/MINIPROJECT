@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
+import '../services/deal_pricing.dart';
 import '../services/order_manager.dart';
 import 'checkout.dart';
 import 'student_shell.dart';
@@ -454,8 +455,8 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
   Widget _buildMysteryBoxCard(BuildContext context, dynamic deal) {
     final vendor = deal['vendor'] ?? {};
-    final originalValue = deal['original_value']?.toString() ?? '400';
-    final currentPrice = deal['start_price']?.toString() ?? '180';
+    final originalValue = ((deal['original_value'] as num?)?.toDouble() ?? 400).toStringAsFixed(0);
+    final currentPrice = livePriceOf(deal, fallback: 180).toStringAsFixed(0);
     final vendorName = vendor['name'] ?? 'Local Surplus Partner';
     final category = vendor['shop_category'] ?? 'Bakery';
     final rating = vendor['rating']?.toString() ?? '4.9';
@@ -464,9 +465,9 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
     final String? coverUrl = deal['image_url'];
     final String dietaryTag = deal['dietary_tag'] ?? '100% Pure Vegetarian';
 
-    final double orig = double.tryParse(originalValue) ?? 400;
-    final double curr = double.tryParse(currentPrice) ?? 180;
-    final int discount = orig > 0 ? (((orig - curr) / orig) * 100).round() : 50;
+    // Live discount against the shop's normal value — server-computed when
+    // available so the badge never disagrees with the price shown.
+    final int discount = discountPercentOf(deal);
 
     final int quantity = (deal['quantity'] as num?)?.toInt() ?? 0;
     final bool isSoldOut = quantity <= 0;
@@ -1004,10 +1005,7 @@ class _DealDetailsSheetState extends State<_DealDetailsSheet> {
       _isReserving = true;
     });
 
-    final res = await ApiService.reserveDeal(
-      dealId: dealId,
-      studentId: 1,
-    );
+    final res = await ApiService.reserveDeal(dealId: dealId);
 
     if (!mounted) return;
 
@@ -1043,8 +1041,8 @@ class _DealDetailsSheetState extends State<_DealDetailsSheet> {
   @override
   Widget build(BuildContext context) {
     final vendor = widget.deal['vendor'] ?? {};
-    final originalValue = widget.deal['original_value']?.toString() ?? '400';
-    final currentPrice = widget.deal['start_price']?.toString() ?? '180';
+    final originalValue = ((widget.deal['original_value'] as num?)?.toDouble() ?? 400).toStringAsFixed(0);
+    final currentPrice = livePriceOf(widget.deal, fallback: 180).toStringAsFixed(0);
     final vendorName = vendor['name'] ?? 'Mystery Box Partner';
     final category = vendor['shop_category'] ?? 'Bakery';
     final title = widget.deal['title'] ?? '$vendorName Mystery Box';
@@ -1077,8 +1075,10 @@ class _DealDetailsSheetState extends State<_DealDetailsSheet> {
             ),
           ),
           const SizedBox(height: 16),
-          // AI Badge & Dietary Tag
-          Row(
+          // AI Badge & Dietary Tag (Wrap so long dietary tags never overflow)
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1097,7 +1097,6 @@ class _DealDetailsSheetState extends State<_DealDetailsSheet> {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
@@ -1106,6 +1105,8 @@ class _DealDetailsSheetState extends State<_DealDetailsSheet> {
                 ),
                 child: Text(
                   dietaryTag,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold),
                 ),
               ),

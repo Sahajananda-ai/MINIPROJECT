@@ -3,6 +3,8 @@ import 'package:http/http.dart' as http;
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 
+import 'session_service.dart';
+
 class ApiService {
   // Since we are running locally, we point to the FastAPI localhost server.
   static String get baseUrl {
@@ -15,33 +17,133 @@ class ApiService {
     return 'http://127.0.0.1:8000';
   }
 
-  /// Simulates a vendor registering or logging in to get their ID
-  /// (In a real app, this would happen during a signup screen)
-  static Future<int> getOrCreateTestVendor() async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/vendors/register'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        "name": "The Great Indian Bakery",
-        "email": "testbakery@gmail.com",
-        "fssai_license": "FSSAI-12345678",
-        "shop_category": "Bakery",
-        "latitude": 28.6139,
-        "longitude": 77.2090
-      }),
-    );
+  static Map<String, String> _headers({bool json = true}) {
+    final headers = <String, String>{};
+    if (json) headers['Content-Type'] = 'application/json';
+    final token = SessionService().token;
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    return headers;
+  }
 
-    if (response.statusCode == 201 || response.statusCode == 200) {
+  /// Reads the server's error message from a failed response, falling back to
+  /// the status code so the UI never shows a blank error.
+  static String _errorOf(http.Response response, {String fallback = 'Request failed'}) {
+    try {
       final data = jsonDecode(response.body);
-      return data['id'];
-    } else {
-      throw Exception('Failed to create vendor: ${response.body}');
+      if (data is Map && data['detail'] != null) {
+        final detail = data['detail'];
+        if (detail is List) {
+          // Pydantic validation errors
+          return detail
+              .map((e) => '${e['msg'] ?? 'invalid input'}${e['loc'] != null ? ' (${e['loc'].skip(1).join('.')})' : ''}')
+              .join('; ');
+        }
+        return detail.toString();
+      }
+    } catch (_) {}
+    return fallback;
+  }
+
+  // ───────────────────────── AUTHENTICATION ─────────────────────────
+
+  static Future<Map<String, dynamic>?> registerStudent({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    return _authCall('/auth/register/student', {
+      'name': name,
+      'email': email,
+      'password': password,
+    });
+  }
+
+  static Future<Map<String, dynamic>?> registerVendor({
+    required String name,
+    required String email,
+    required String password,
+    required String fssaiLicense,
+    required String shopCategory,
+    required double latitude,
+    required double longitude,
+  }) async {
+    return _authCall('/auth/register/vendor', {
+      'name': name,
+      'email': email,
+      'password': password,
+      'fssai_license': fssaiLicense,
+      'shop_category': shopCategory,
+      'latitude': latitude,
+      'longitude': longitude,
+    });
+  }
+
+  static Future<Map<String, dynamic>?> login({
+    required String email,
+    required String password,
+    required String role,
+  }) async {
+    return _authCall('/auth/login', {
+      'email': email,
+      'password': password,
+      'role': role,
+    });
+  }
+
+  static Future<Map<String, dynamic>?> _authCall(
+      String path, Map<String, dynamic> body) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl$path'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        SessionService().setSession(
+          token: data['access_token'] as String,
+          role: data['role'] as String,
+          id: (data['id'] as num).toInt(),
+          name: data['name'] as String?,
+          email: data['email'] as String?,
+        );
+        return data;
+      }
+      return {'error': _errorOf(response, fallback: 'Sign in failed')};
+    } catch (e) {
+      debugPrint('Auth error: $e');
+      return {'error': 'Backend unreachable. Please check your connection.'};
     }
   }
 
-  /// Sends the Deal Data to the FastAPI Python server
+  /// Returns the signed-in user as the server sees them (validates the token).
+  static Future<Map<String, dynamic>?> me() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/auth/me'),
+        headers: _headers(json: false),
+      );
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      }
+    } catch (e) {
+      debugPrint('me() error: $e');
+    }
+    return null;
+  }
+
+  static Future<void> signOut() => SessionService().clear();
+
+  // ───────────────────────── VENDOR / DEALS ─────────────────────────
+
+  /// Sends the Deal Data to the FastAPI Python server.
+  /// The vendor identity comes from the session token, not from a parameter.
   static Future<bool> createMysteryBox({
-    required int vendorId,
     required double originalValue,
     required double startPrice,
     required double minPrice,
@@ -54,9 +156,8 @@ class ApiService {
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/deals/create'),
-      headers: {'Content-Type': 'application/json'},
+      headers: _headers(),
       body: jsonEncode({
-        "vendor_id": vendorId,
         "title": title ?? "Surplus Mystery Box",
         "description": description,
         "dietary_tag": dietaryTag ?? "Vegetarian",
@@ -72,16 +173,16 @@ class ApiService {
     if (response.statusCode == 201) {
       return true;
     } else {
-      print("API Error: ${response.body}");
+      debugPrint("Create deal error: ${_errorOf(response)}");
       return false;
     }
   }
 
-  /// Fetches all active deals from the FastAPI backend
+  /// Fetches all active deals, including the LIVE decayed `current_price`.
   static Future<List<dynamic>> getActiveDeals() async {
     final response = await http.get(
       Uri.parse('$baseUrl/deals/active'),
-      headers: {'Content-Type': 'application/json'},
+      headers: _headers(json: false),
     );
 
     if (response.statusCode == 200) {
@@ -91,29 +192,29 @@ class ApiService {
     }
   }
 
-  /// Reserves a deal for a student (5 minute lock)
+  /// Reserves a deal for the signed-in student (5 minute lock).
   static Future<Map<String, dynamic>?> reserveDeal({
     required int dealId,
-    required int studentId,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/deals/reserve'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "deal_id": dealId,
-          "student_id": studentId,
-        }),
-      );
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/deals/reserve'),
+            headers: _headers(),
+            body: jsonEncode({"deal_id": dealId}),
+          )
+          .timeout(const Duration(seconds: 10));
 
-      return jsonDecode(response.body);
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode == 200) return data;
+      return {'detail': data['detail'] ?? 'Reservation failed'};
     } catch (e) {
-      print("Reserve error: $e");
+      debugPrint("Reserve error: $e");
       return null;
     }
   }
 
-  /// Updates student's GPS location in PostGIS for spatial notifications
+  /// Updates the signed-in student's GPS location in PostGIS.
   static Future<bool> updateStudentLocation({
     required int studentId,
     required double latitude,
@@ -122,62 +223,113 @@ class ApiService {
     try {
       final response = await http.put(
         Uri.parse('$baseUrl/students/$studentId/location?latitude=$latitude&longitude=$longitude'),
-        headers: {'Content-Type': 'application/json'},
+        headers: _headers(json: false),
       );
       return response.statusCode == 200;
     } catch (e) {
-      print("Location update error: $e");
+      debugPrint("Location update error: $e");
       return false;
     }
   }
 
-  /// Creates a finalized order in the database, permanently deducting stock and generating a verified pickup pass
+  /// Creates a finalized order in the database, permanently deducting stock and
+  /// generating a verified pickup pass code.
+  ///
+  /// [clientRequestId] makes retries safe: the same key returns the same order.
   static Future<Map<String, dynamic>?> createOrder({
     required int dealId,
-    required int studentId,
+    required String clientRequestId,
     String paymentMethod = "UPI",
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/deals/orders/create'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "deal_id": dealId,
-          "student_id": studentId,
-          "payment_method": paymentMethod,
-        }),
-      );
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      } else {
-        debugPrint("Create order failed: ${response.body}");
-      }
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/deals/orders/create'),
+            headers: _headers(),
+            body: jsonEncode({
+              "deal_id": dealId,
+              "payment_method": paymentMethod,
+              "client_request_id": clientRequestId,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode == 200) return data;
+      return {'detail': data['detail'] ?? 'Order failed'};
     } catch (e) {
       debugPrint("Create order error: $e");
+      return null;
     }
-    return null;
   }
 
-  /// Verifies a customer pickup code strictly against PostgreSQL database records
+  /// Fetches the signed-in student's real orders from the server.
+  static Future<List<dynamic>> getMyOrders() async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/deals/orders/me'),
+            headers: _headers(json: false),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as List<dynamic>;
+      }
+      debugPrint("getMyOrders HTTP ${response.statusCode}");
+    } catch (e) {
+      debugPrint("getMyOrders error: $e");
+    }
+    return [];
+  }
+
+  /// Fetches live orders for the signed-in vendor's store.
+  static Future<List<dynamic>> getMyVendorOrders() async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/deals/orders/vendor/me'),
+            headers: _headers(json: false),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as List<dynamic>;
+      }
+      debugPrint("getMyVendorOrders HTTP ${response.statusCode}");
+    } catch (e) {
+      debugPrint("getMyVendorOrders error: $e");
+    }
+    return [];
+  }
+
+  /// Verifies a customer pickup code. The redeeming store is taken from the
+  /// vendor's token server-side, so only the right store can redeem a code.
   static Future<Map<String, dynamic>> verifyPickupCode({
-    required int vendorId,
     required String pickupCode,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/deals/orders/verify-pickup'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "vendor_id": vendorId,
-          "pickup_code": pickupCode.trim().toUpperCase(),
-        }),
-      );
-      final data = jsonDecode(response.body);
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/deals/orders/verify-pickup'),
+            headers: _headers(),
+            body: jsonEncode({"pickup_code": pickupCode.trim().toUpperCase()}),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode == 200) {
-        return {"success": true, "message": data["message"], "order": data["order"]};
-      } else {
-        return {"success": false, "message": data["detail"] ?? "Invalid passcode"};
+        return {
+          "success": true,
+          "message": data["message"],
+          "order": data["order"]
+        };
       }
+      return {
+        "success": false,
+        "message": data["detail"] ?? "Invalid passcode",
+        "status": response.statusCode,
+      };
     } catch (e) {
       debugPrint("Verify code error: $e");
       return {"success": false, "message": "Backend unreachable or connection error"};
@@ -216,24 +368,6 @@ class ApiService {
     return null;
   }
 
-  /// Completes / redeems a reserved deal at pickup
-  static Future<bool> completeDeal({
-    required int dealId,
-    required int studentId,
-  }) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/deals/$dealId/complete'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({"student_id": studentId}),
-      );
-      return response.statusCode == 200;
-    } catch (e) {
-      debugPrint("Complete deal error: $e");
-      return false;
-    }
-  }
-
   /// Asks SaveBite AI for personalized surplus recommendations
   static Future<Map<String, dynamic>?> getAiRecommendation({
     String query = "best value",
@@ -243,7 +377,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/ai/recommend'),
-        headers: {'Content-Type': 'application/json'},
+        headers: _headers(),
         body: jsonEncode({
           "query": query,
           "max_budget": maxBudget,
@@ -254,7 +388,7 @@ class ApiService {
         return jsonDecode(response.body);
       }
     } catch (e) {
-      print("AI recommendation error: $e");
+      debugPrint("AI recommendation error: $e");
     }
     return null;
   }
@@ -270,7 +404,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/ai/generate-box-description'),
-        headers: {'Content-Type': 'application/json'},
+        headers: _headers(),
         body: jsonEncode({
           "category": category ?? "Bakery",
           "items_text": itemsText,
@@ -282,12 +416,11 @@ class ApiService {
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       } else {
-        print("AI Vision error: ${response.body}");
+        debugPrint("AI Vision error: ${response.body}");
       }
     } catch (e) {
-      print("AI Vision request failed: $e");
+      debugPrint("AI Vision request failed: $e");
     }
     return null;
   }
 }
-

@@ -24,6 +24,17 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
   void initState() {
     super.initState();
     _orderManager.addListener(_onOrdersChanged);
+    _orderManager.setLoading(true);
+    _refreshOrders();
+  }
+
+  /// Loads the real orders from the server. The list survives an app restart
+  /// and reflects what the vendor has actually confirmed.
+  Future<void> _refreshOrders() async {
+    _orderManager.setLoading(true);
+    final serverOrders = await ApiService.getMyOrders();
+    _orderManager.hydrate(serverOrders);
+    _orderManager.setLoading(false);
   }
 
   @override
@@ -36,75 +47,58 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
     if (mounted) setState(() {});
   }
 
-  void _confirmPickup(MysteryBoxOrder order) async {
-    final confirmed = await showDialog<bool>(
+  /// Students cannot mark their own pickup complete — that was a loophole that
+  /// let anyone clear stock without the vendor. This shows the pass instead and
+  /// re-syncs with the server, so the status flips once the vendor verifies.
+  void _showPickupPass(MysteryBoxOrder order) async {
+    await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
-          "Confirm Pickup",
-          style: GoogleFonts.playfairDisplay(
-            fontWeight: FontWeight.bold,
-            color: _charcoal,
-          ),
+          "Show This Code",
+          style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold),
         ),
-        content: Text(
-          "Did you collect your delicious Mystery Box from ${order.vendorName}?",
-          style: GoogleFonts.inter(color: Colors.black87, height: 1.4),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: _cream,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: _tealPrimary.withValues(alpha: 0.4), width: 1.5),
+              ),
+              child: Text(
+                order.pickupCode,
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 2,
+                  color: _tealPrimary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              "The shopkeeper enters this code to confirm your handover. "
+              "Your order flips to Rescued once they do.",
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(fontSize: 13, color: Colors.black54, height: 1.4),
+            ),
+          ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(
-              "Cancel",
-              style: GoogleFonts.inter(color: Colors.grey[700], fontWeight: FontWeight.w600),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _tealPrimary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-            ),
-            child: Text(
-              "Yes, Collected! 🌱",
-              style: GoogleFonts.inter(fontWeight: FontWeight.bold),
-            ),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Done"),
           ),
         ],
       ),
     );
-
-    if (confirmed == true) {
-      await ApiService.completeDeal(dealId: order.dealId, studentId: order.studentId);
-      _orderManager.markOrderCollected(order.dealId);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: _tealPrimary,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            content: Row(
-              children: [
-                const Icon(Icons.celebration_rounded, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    "High five! You just saved food from being wasted 🎉",
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-        // Prompt for community trust rating
-        _showRatingDialog(order);
-      }
-    }
+    // Re-sync in case the vendor confirmed while the pass was on screen.
+    _refreshOrders();
   }
 
   void _showRatingDialog(MysteryBoxOrder order) {
@@ -614,15 +608,14 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => _confirmPickup(order),
-                        icon: const Icon(Icons.check_circle_rounded, size: 18),
-                        label: Text(
-                          "Collected!",
-                          style: GoogleFonts.inter(fontWeight: FontWeight.bold),
-                        ),
+                    const SizedBox(width: 12),                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _showPickupPass(order),
+                          icon: const Icon(Icons.qr_code_2_rounded, size: 18),
+                          label: Text(
+                            "Show Pass",
+                            style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+                          ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _tealPrimary,
                           foregroundColor: Colors.white,
@@ -643,7 +636,12 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
   }
 
   Widget _buildPastOrderCard(MysteryBoxOrder order) {
-    return Container(
+    return InkWell(
+      // Tapping a rescued box lets the student rate that vendor — the rating
+      // flow now has a real entry point instead of being unreachable.
+      onTap: () => _showRatingDialog(order),
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -698,13 +696,13 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
           ),
         ],
       ),
+      ),
     );
   }
 
   Widget _buildImpactSummaryBar(int activeCount, int pastCount) {
-    final totalBoxes = activeCount + pastCount;
-    final totalSavings = 280.0 * (totalBoxes > 0 ? totalBoxes : 1);
-    final co2Kg = (totalSavings * 0.015).toStringAsFixed(1);
+    // Real numbers from the hydrated orders — no invented per-box value.
+    final impact = OrderManager().impact;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
@@ -745,11 +743,11 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildImpactStatItem("${totalBoxes > 0 ? totalBoxes : 1}", "Boxes Rescued"),
+              _buildImpactStatItem("${impact.mealsRescued}", "Boxes Rescued"),
               Container(width: 1, height: 28, color: Colors.white24),
-              _buildImpactStatItem("₹${totalSavings.toStringAsFixed(0)}", "Cash Saved"),
+              _buildImpactStatItem("₹${impact.moneySaved.toStringAsFixed(0)}", "Cash Saved"),
               Container(width: 1, height: 28, color: Colors.white24),
-              _buildImpactStatItem("$co2Kg kg", "CO₂ Avoided"),
+              _buildImpactStatItem("${impact.co2AvoidedKg} kg", "CO₂ Avoided"),
             ],
           ),
         ],

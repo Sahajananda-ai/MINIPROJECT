@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/session_service.dart';
+import 'auth_screen.dart';
 import 'student_shell.dart';
 import 'vendor_dashboard.dart';
 
@@ -57,6 +59,23 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  /// Picking a role means picking an account type.
+  ///
+  /// If the device already holds a session for that role we go straight in
+  /// (returning users skip the login form); otherwise we open the sign-in flow.
+  void _pickRole(String role) {
+    final session = SessionService();
+    if (session.isAuthenticated && session.role == role) {
+      _navigateTo(role == 'student' ? const StudentShell() : const VendorDashboardScreen());
+      return;
+    }
+    if (session.isAuthenticated) {
+      // Session belongs to the other account type — start a fresh one.
+      SessionService().clear();
+    }
+    _navigateTo(AuthScreen(role: role));
   }
 
   void _navigateTo(Widget screen) {
@@ -183,7 +202,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                         title: "I'm a Student",
                         subtitle: 'Discover surplus mystery boxes from nearby shops at 50-70% off',
                         accentColor: _warmAmber,
-                        onTap: () => _navigateTo(const StudentShell()),
+                        onTap: () => _pickRole('student'),
                       ),
                     ),
                   ),
@@ -201,7 +220,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                         title: "I'm a Vendor",
                         subtitle: 'List surplus food, reduce waste & earn from what would be thrown away',
                         accentColor: _tealPrimary,
-                        onTap: () => _navigateTo(const VendorDashboardScreen()),
+                        onTap: () => _pickRole('vendor'),
                       ),
                     ),
                   ),

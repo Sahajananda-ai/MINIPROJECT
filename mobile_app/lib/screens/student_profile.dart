@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/order_manager.dart';
+import '../services/api_service.dart';
+import '../services/session_service.dart';
 import 'role_selection.dart';
-import 'vendor_dashboard.dart';
 
 class StudentProfileScreen extends StatelessWidget {
   const StudentProfileScreen({super.key});
@@ -9,9 +10,12 @@ class StudentProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final orderManager = OrderManager();
-    final mealsRescued = orderManager.totalMealsRescued;
-    final totalSaved = orderManager.totalSavings.toStringAsFixed(0);
-    final co2Prevented = orderManager.totalCo2AvoidedKg.toStringAsFixed(1);
+    final session = SessionService();
+    // One shared impact formula (ImpactStats) — the Pickups screen used a
+    // different one, so the same rescue showed two different CO₂ numbers.
+    final impact = orderManager.impact;
+    final displayName = session.name ?? 'SaveBite Student';
+    final displayEmail = session.email ?? 'Not signed in';
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -63,13 +67,13 @@ class StudentProfileScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          "Rahul Sharma",
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        Text(
+                          displayName,
+                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          "rahul@campus.edu",
+                          displayEmail,
                           style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                         ),
                         const SizedBox(height: 6),
@@ -79,9 +83,13 @@ class StudentProfileScreen extends StatelessWidget {
                             color: Colors.orange.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Text(
-                            "🎓 Campus Food Hero",
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.deepOrange),
+                          // Badge is earned, not decorative: it appears once a
+                          // student has actually rescued their first box.
+                          child: Text(
+                            impact.mealsRescued > 0
+                                ? "🎓 Campus Food Hero"
+                                : "🌱 Ready to rescue food",
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.deepOrange),
                           ),
                         ),
                       ],
@@ -133,11 +141,11 @@ class StudentProfileScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildImpactItem("🌱", "$mealsRescued", "Meals\nRescued"),
+                      _buildImpactItem("🌱", "${impact.mealsRescued}", "Meals\nRescued"),
                       Container(height: 40, width: 1, color: Colors.white.withValues(alpha: 0.2)),
-                      _buildImpactItem("💰", "₹$totalSaved", "Money\nSaved"),
+                      _buildImpactItem("💰", "₹${impact.moneySaved.toStringAsFixed(0)}", "Money\nSaved"),
                       Container(height: 40, width: 1, color: Colors.white.withValues(alpha: 0.2)),
-                      _buildImpactItem("🌍", "${co2Prevented}kg", "CO₂\nAvoided"),
+                      _buildImpactItem("🌍", "${impact.co2AvoidedKg}kg", "CO₂\nAvoided"),
                     ],
                   ),
                 ],
@@ -147,19 +155,9 @@ class StudentProfileScreen extends StatelessWidget {
             const SizedBox(height: 24),
 
             // Navigation & Quick Settings
-            _buildActionTile(
-              icon: Icons.storefront_rounded,
-              title: "Switch to Vendor Mode",
-              subtitle: "List and manage surplus mystery boxes",
-              color: Colors.deepOrange,
-              onTap: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const VendorDashboardScreen()),
-                );
-              },
-            ),
-
+            // NOTE: the old "Switch to Vendor Mode" tile let any student open the
+            // vendor portal. A vendor account now comes from the server token, so
+            // there is nothing to switch into from here.
             _buildActionTile(
               icon: Icons.radar_rounded,
               title: "Geofence Notifications",
@@ -169,6 +167,18 @@ class StudentProfileScreen extends StatelessWidget {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("Geofence notifications active for 2km campus radius.")),
                 );
+              },
+            ),
+
+            _buildActionTile(
+              icon: Icons.logout_rounded,
+              title: "Sign Out",
+              subtitle: "End this session on this device",
+              color: Colors.redAccent,
+              onTap: () async {
+                await ApiService.signOut();
+                if (!context.mounted) return;
+                Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false);
               },
             ),
 

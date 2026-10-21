@@ -50,8 +50,9 @@ def run_pricing_update_job(db: Session):
         new_price = calculate_decay_price(deal)
         
         # In a highly scalable system, we would push these new prices to Redis
-        # so the mobile app can fetch the live prices instantly without hitting PostgreSQL
-        print(f"Deal {deal.id} price decayed to ₹{new_price}")
+        # so the mobile app can fetch the live prices instantly without hitting PostgreSQL.
+        # NB: ascii-safe output — Windows consoles raise on the rupee sign otherwise.
+        print(f"Deal {deal.id} price decayed to INR {new_price}")
         
     # Example of saving back to DB if needed:
     # db.commit()

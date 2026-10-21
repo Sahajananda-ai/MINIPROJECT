@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../services/api_service.dart';
+import '../services/deal_pricing.dart';
 import '../services/location_service.dart';
 import '../services/order_manager.dart';
+import '../services/session_service.dart';
 import 'checkout.dart';
 import 'student_shell.dart';
 
@@ -121,11 +123,14 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
         });
         _mapController.move(_currentLocation, 14.2);
         // Sync student location with PostGIS backend for geofencing
-        ApiService.updateStudentLocation(
-          studentId: 1,
-          latitude: position.latitude,
-          longitude: position.longitude,
-        );
+        final studentId = SessionService().id;
+        if (studentId != null) {
+          ApiService.updateStudentLocation(
+            studentId: studentId,
+            latitude: position.latitude,
+            longitude: position.longitude,
+          );
+        }
       }
     } catch (e) {
       debugPrint("Using default campus location: $e");
@@ -427,7 +432,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                     final vendor = deal['vendor'] ?? {};
                     final shopPoint = _getShopLatLng(vendor, idx);
                     final String category = vendor['shop_category'] ?? 'Food';
-                    final price = deal['start_price']?.toString() ?? '180';
+                    final price = livePriceOf(deal, fallback: 180).toStringAsFixed(0);
                     final isSelected = _selectedDeal != null && _selectedDeal['id'] == deal['id'];
 
                     return Marker(
@@ -645,8 +650,8 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
     final vendor = deal['vendor'] ?? {};
     final shopPoint = _getShopLatLng(vendor, 0);
     final distance = _calculateDistanceKm(shopPoint);
-    final originalPrice = deal['original_value']?.toString() ?? '400';
-    final currentPrice = deal['start_price']?.toString() ?? '180';
+    final originalPrice = ((deal['original_value'] as num?)?.toDouble() ?? 400).toStringAsFixed(0);
+    final currentPrice = livePriceOf(deal, fallback: 180).toStringAsFixed(0);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -894,10 +899,7 @@ class _ReserveButtonState extends State<_ReserveButton> {
       _isReserving = true;
     });
 
-    final reservationResponse = await ApiService.reserveDeal(
-      dealId: widget.deal['id'],
-      studentId: 1,
-    );
+    final reservationResponse = await ApiService.reserveDeal(dealId: widget.deal['id']);
 
     if (!mounted) return;
 

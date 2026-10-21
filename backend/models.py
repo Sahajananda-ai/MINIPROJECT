@@ -10,6 +10,8 @@ class Vendor(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
+    email = Column(String, unique=True, index=True, nullable=True)
+    password_hash = Column(String, nullable=True)
     fssai_license = Column(String, unique=True, index=True)
     shop_category = Column(String)
     
@@ -29,6 +31,7 @@ class Student(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String)
     email = Column(String, unique=True, index=True)
+    password_hash = Column(String, nullable=True)
     
     # Stores the student's last known location for geofencing notifications
     last_location = Column(Geometry(geometry_type='POINT', srid=4326))
@@ -69,6 +72,7 @@ class Order(Base):
     status = Column(String, default="PAID")  # RESERVED, PAID, COLLECTED, CANCELLED
     paid_price = Column(Float)
     original_value = Column(Float)
+    client_request_id = Column(String, unique=True, nullable=True, index=True)
 
     reserved_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     collected_at = Column(DateTime(timezone=True), nullable=True)

@@ -26,6 +26,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _isProcessingPayment = false;
   String _selectedPaymentMethod = "UPI";
 
+  /// Idempotency key: one per checkout attempt, reused on retry so a flaky
+  /// connection can never create a second order for the same payment.
+  late final String _requestId =
+      'ck-${DateTime.now().microsecondsSinceEpoch}-${widget.deal['id']}';
+
   // SaveBite matte palette
   static const Color _cream = Color(0xFFF5F0E8);
   static const Color _tealPrimary = Color(0xFF006C5B);
@@ -103,20 +108,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     final vendor = widget.deal['vendor'] ?? {};
     final paidPrice = (widget.reservation['reserved_price'] as num?)?.toDouble() ??
+        (widget.deal['current_price'] as num?)?.toDouble() ??
         (widget.deal['start_price'] as num?)?.toDouble() ??
         180.0;
-    final origVal = (widget.deal['original_value'] as num?)?.toDouble() ?? 420.0;
-    final closing = DateTime.tryParse(widget.deal['closing_time']?.toString() ?? '') ??
-        DateTime.now().add(const Duration(hours: 3));
-
-    final lat = (vendor['latitude'] as num?)?.toDouble();
-    final lng = (vendor['longitude'] as num?)?.toDouble();
-    final dealId = widget.deal['id'] ?? 41;
+    final dealId = widget.deal['id'];
 
     // Call backend to permanently deduct stock in PostgreSQL and generate verified pickup code
     final orderRes = await ApiService.createOrder(
       dealId: dealId,
-      studentId: 1,
+      clientRequestId: _requestId,
       paymentMethod: _selectedPaymentMethod,
     );
 
@@ -132,19 +132,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final realPickupCode = orderRes['pickup_code'] ?? "SB-$dealId";
       final vendorDisplayName = orderRes['vendor_name'] ?? vendor['name'] ?? 'Mystery Box Partner';
 
-      // Register active order into OrderManager
-      OrderManager().addOrder(
-        dealId: dealId,
-        studentId: 1,
-        vendorName: vendorDisplayName,
-        shopCategory: vendor['shop_category'] ?? 'Surplus Bag',
-        paidPrice: paidPrice,
-        originalValue: origVal,
-        closingTime: closing,
-        latitude: lat,
-        longitude: lng,
-        pickupCode: realPickupCode,
-      );
+      // Register the server-confirmed order (server is the authority)
+      final orderPayload = orderRes['order'];
+      if (orderPayload is Map<String, dynamic>) {
+        OrderManager().addFromCreateResponse(orderPayload);
+      } else if (orderPayload is Map) {
+        OrderManager().addFromCreateResponse(Map<String, dynamic>.from(orderPayload));
+      }
 
       // Show Celebration Bottom Sheet with verified passcode
       _showSuccessBottomSheet(realPickupCode, vendorDisplayName, paidPrice);
@@ -573,31 +567,29 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.grey[200]!),
               ),
-              child: Column(
+              child: RadioGroup<String>(
+                groupValue: _selectedPaymentMethod,
+                onChanged: (val) {
+                  if (val != null) setState(() => _selectedPaymentMethod = val);
+                },
+                child: const Column(
                 children: [
                   RadioListTile<String>(
                     value: "UPI",
-                    groupValue: _selectedPaymentMethod,
-                    activeColor: const Color(0xFF006C5B),
-                    title: const Text("Instant UPI (GPay / PhonePe / Paytm)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                    subtitle: const Text("Fast 1-tap test checkout simulator", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                    secondary: const Icon(Icons.bolt_rounded, color: Colors.amber),
-                    onChanged: (val) {
-                      if (val != null) setState(() => _selectedPaymentMethod = val);
-                    },
+                    activeColor: Color(0xFF006C5B),
+                    title: Text("Instant UPI (GPay / PhonePe / Paytm)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    subtitle: Text("Fast 1-tap test checkout simulator", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    secondary: Icon(Icons.bolt_rounded, color: Colors.amber),
                   ),
-                  const Divider(height: 1),
+                  Divider(height: 1),
                   RadioListTile<String>(
                     value: "CARD",
-                    groupValue: _selectedPaymentMethod,
-                    activeColor: const Color(0xFF006C5B),
-                    title: const Text("Debit / Credit Card / Netbanking", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                    secondary: const Icon(Icons.credit_card_rounded, color: Colors.grey),
-                    onChanged: (val) {
-                      if (val != null) setState(() => _selectedPaymentMethod = val);
-                    },
+                    activeColor: Color(0xFF006C5B),
+                    title: Text("Debit / Credit Card / Netbanking", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    secondary: Icon(Icons.credit_card_rounded, color: Colors.grey),
                   ),
                 ],
+                ),
               ),
             ),
 

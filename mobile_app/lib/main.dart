@@ -2,15 +2,78 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'screens/onboarding.dart';
+import 'screens/student_shell.dart';
+import 'screens/vendor_dashboard.dart';
+import 'services/session_service.dart';
 import 'widgets/mobile_frame_wrapper.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.dark,
   ));
+  // Restore any previous session before the first frame, so a returning user
+  // lands straight in their own experience instead of the onboarding carousel.
+  await SessionService().load();
   runApp(const SaveBiteApp());
+}
+
+/// Decides where the app starts: a signed-in student goes to their shell, a
+/// signed-in vendor to their portal, and everyone else to onboarding.
+class EntryRouter extends StatelessWidget {
+  const EntryRouter({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final session = SessionService();
+    if (!session.isLoaded) return const _BrandSplash();
+    if (session.isVendor) return const VendorDashboardScreen();
+    if (session.isStudent) return const StudentShell();
+    return const OnboardingScreen();
+  }
+}
+
+class _BrandSplash extends StatelessWidget {
+  const _BrandSplash();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: SaveBiteApp.cream,
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: SaveBiteApp.tealPrimary,
+                borderRadius: BorderRadius.circular(26),
+              ),
+              child: const Icon(Icons.eco_rounded, color: Colors.white, size: 44),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'SaveBite',
+              style: GoogleFonts.playfairDisplay(
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                color: SaveBiteApp.charcoal,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const SizedBox(
+              width: 26,
+              height: 26,
+              child: CircularProgressIndicator(
+                  strokeWidth: 2.5, color: SaveBiteApp.tealPrimary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class SaveBiteApp extends StatelessWidget {
@@ -192,7 +255,12 @@ class SaveBiteApp extends StatelessWidget {
       builder: (context, child) {
         return MobileFrameWrapper(child: child ?? const SizedBox.shrink());
       },
-      home: const OnboardingScreen(),
+      initialRoute: '/',
+      routes: {
+        // Named route so "Sign out" (and any future deep link) can restart at
+        // the real entry decision instead of onboarding.
+        '/': (context) => const EntryRouter(),
+      },
     );
   }
 }
