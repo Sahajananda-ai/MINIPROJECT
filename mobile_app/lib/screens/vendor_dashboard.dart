@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/order_manager.dart';
 import '../services/session_service.dart';
+import '../theme/savebite_theme.dart';
 import 'role_selection.dart';
 
 class VendorDashboardScreen extends StatefulWidget {
@@ -629,6 +630,43 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
               ),
             ),
 
+            const SizedBox(height: 16),
+
+            // The daily loop, spelled out once so a new partner always knows
+            // what to do next without hunting through the page.
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: SaveBiteTheme.cream.withValues(alpha: 0.55),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: SaveBiteTheme.border),
+              ),
+              child: const Row(
+                children: [
+                  _VendorLoopStep(
+                    index: '1',
+                    icon: Icons.inventory_2_rounded,
+                    title: 'List surplus',
+                    subtitle: 'AI writes the mystery ',
+                  ),
+                  _VendorLoopDivider(),
+                  _VendorLoopStep(
+                    index: '2',
+                    icon: Icons.trending_down_rounded,
+                    title: 'Price & relax',
+                    subtitle: 'Price drops till floor ',
+                  ),
+                  _VendorLoopDivider(),
+                  _VendorLoopStep(
+                    index: '3',
+                    icon: Icons.verified_rounded,
+                    title: 'Verify & hand over',
+                    subtitle: "Scan student's pass ",
+                  ),
+                ],
+              ),
+            ),
+
             const SizedBox(height: 24),
 
             // AI Mystery Vision & Curator Section Header
@@ -973,6 +1011,11 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Boxes sell at Start Price when listed, then gently drop toward Min Floor as closing time approaches — automatic pricing, nothing to manage.",
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600], height: 1.3),
+                  ),
                   const SizedBox(height: 16),
                   _buildInputField(
                     label: "Quantity of Boxes Available",
@@ -1087,6 +1130,78 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
         ),
         filled: true,
         fillColor: Colors.grey[50],
+      ),
+    );
+  }
+}
+
+/// One numbered step of the vendor's daily loop (List → Price → Verify).
+/// Purely presentational, matching the [common_ui] design language.
+class _VendorLoopStep extends StatelessWidget {
+  final String index;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  const _VendorLoopStep({
+    required this.index,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: const Color(0xFF006C5B),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              index,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Icon(icon, size: 20, color: const Color(0xFF006C5B)),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: TextStyle(fontSize: 10, color: Colors.grey[600], height: 1.25),
+            maxLines: 2,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The small arrow connecting two adjacent _VendorLoopStep widgets.
+class _VendorLoopDivider extends StatelessWidget {
+  const _VendorLoopDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Icon(
+        Icons.arrow_forward_ios_rounded,
+        size: 14,
+        color: Colors.grey[400],
       ),
     );
   }

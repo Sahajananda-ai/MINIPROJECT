@@ -5,6 +5,7 @@ import 'screens/onboarding.dart';
 import 'screens/student_shell.dart';
 import 'screens/vendor_dashboard.dart';
 import 'services/session_service.dart';
+import 'theme/savebite_theme.dart';
 import 'widgets/mobile_frame_wrapper.dart';
 
 Future<void> main() async {
@@ -79,27 +80,28 @@ class _BrandSplash extends StatelessWidget {
 class SaveBiteApp extends StatelessWidget {
   const SaveBiteApp({super.key});
 
-  // ─── SaveBite Design Tokens (from replica/design/tokens.json) ───
-  // Warm matte palette inspired by Pizza Amici + papermorphism
-  static const Color cream       = Color(0xFFF5F0E8);
-  static const Color creamWarm   = Color(0xFFEDE6DA);
-  static const Color surface     = Color(0xFFFFFDF9);
-  static const Color border      = Color(0xFFD4C9B8);
-  static const Color borderInput = Color(0xFFC2B5A0);
-  static const Color charcoal    = Color(0xFF2B1D15);
-  static const Color textMuted   = Color(0xFF6B5D52);
+  // ─── SaveBite Design Tokens ───
+  // Canonical values now live in theme/savebite_theme.dart; these aliases keep
+  // every `SaveBiteApp.<color>` call site across the app working unchanged.
+  static const Color cream = SaveBiteTheme.cream;
+  static const Color creamWarm = SaveBiteTheme.creamWarm;
+  static const Color surface = SaveBiteTheme.surface;
+  static const Color border = SaveBiteTheme.border;
+  static const Color borderInput = SaveBiteTheme.borderInput;
+  static const Color charcoal = SaveBiteTheme.charcoal;
+  static const Color textMuted = SaveBiteTheme.textMuted;
 
-  static const Color tealPrimary = Color(0xFF006C5B);
-  static const Color tealDark    = Color(0xFF005A4B);
-  static const Color tealSubtle  = Color(0xFFE6F2EF);
+  static const Color tealPrimary = SaveBiteTheme.tealPrimary;
+  static const Color tealDark = SaveBiteTheme.tealDark;
+  static const Color tealSubtle = SaveBiteTheme.tealSubtle;
 
-  static const Color warmAmber      = Color(0xFFFF8C42);
-  static const Color warmAmberHover = Color(0xFFE87A35);
+  static const Color warmAmber = SaveBiteTheme.warmAmber;
+  static const Color warmAmberHover = SaveBiteTheme.warmAmberHover;
 
-  static const Color danger        = Color(0xFFD94040);
-  static const Color success       = Color(0xFF2E7D32);
-  static const Color successSubtle = Color(0xFFE8F5E9);
-  static const Color warning       = Color(0xFFF9A825);
+  static const Color danger = SaveBiteTheme.danger;
+  static const Color success = SaveBiteTheme.success;
+  static const Color successSubtle = SaveBiteTheme.successSubtle;
+  static const Color warning = SaveBiteTheme.warning;
 
   @override
   Widget build(BuildContext context) {

@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../services/deal_pricing.dart';
 import '../services/order_manager.dart';
+import '../theme/savebite_theme.dart';
+import '../widgets/common_ui.dart';
 import 'checkout.dart';
 import 'student_shell.dart';
 
@@ -20,6 +22,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<dynamic> _deals = [];
   bool _isLoading = true;
+
+  /// Distinguishes "no deals exist" from "the connection failed" so the feed
+  /// can show a retry path instead of an apparently empty campus.
+  bool _loadFailed = false;
 
   final List<Map<String, String>> _categories = const [
     {'name': 'All', 'icon': '🌟'},
@@ -60,6 +66,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
   Future<void> _loadDeals() async {
     setState(() {
       _isLoading = true;
+      _loadFailed = false;
     });
     try {
       final deals = await ApiService.getActiveDeals();
@@ -73,6 +80,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
+          _loadFailed = true;
         });
       }
     }
@@ -405,37 +413,72 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
 
             // Deals List Section
             if (_isLoading)
-              const SliverFillRemaining(
-                child: Center(
-                  child: CircularProgressIndicator(color: Color(0xFF006C5B)),
+              // Skeleton deal cards keep the layout stable while the feed loads —
+              // a bare spinner made the app feel broken during fetches.
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => const DealCardSkeleton(),
+                  childCount: 3,
+                ),
+              )
+            else if (_loadFailed)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: AppErrorState(
+                  message:
+                      'Couldn\'t reach the live surplus feed. Check your connection and try again — deals update in real time, so nothing has been missed.',
+                  onRetry: _loadDeals,
                 ),
               )
             else if (filtered.isEmpty)
               SliverFillRemaining(
                 hasScrollBody: false,
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey[400]),
-                      const SizedBox(height: 16),
-                      Text(
-                        _searchQuery.isNotEmpty
-                            ? "No surplus matches for '$_searchQuery'"
-                            : "No active mystery boxes right now",
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "Check back closer to store closing hours or explore the Map!",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                      ),
-                    ],
-                  ),
+                child: AppEmptyState(
+                  icon: Icons.soup_kitchen_outlined,
+                  iconColor: SaveBiteTheme.warmAmber,
+                  title: _searchQuery.isNotEmpty || _selectedCategory != 'All' || _selectedDietary != 'All'
+                      ? 'No boxes match your filters'
+                      : 'No active mystery boxes right now',
+                  subtitle: _searchQuery.isNotEmpty ||
+                          _selectedCategory != 'All' ||
+                          _selectedDietary != 'All'
+                      ? 'Fresh surplus drops all day as shops approach closing time. Try clearing your filters — or explore what\'s nearby on the map.'
+                      : 'Check back closer to store closing hours, or look at the live radar map — the nearest shop may be baking right now!',
+                  ctaLabel: 'Open Radar Map',
+                  ctaIcon: Icons.map_outlined,
+                  onCta: () => StudentShell.switchTab(1),
+                  secondaryLabel: (_searchQuery.isNotEmpty ||
+                          _selectedCategory != 'All' ||
+                          _selectedDietary != 'All')
+                      ? 'Clear filters'
+                      : null,
+                  onSecondary: (_searchQuery.isNotEmpty ||
+                          _selectedCategory != 'All' ||
+                          _selectedDietary != 'All')
+                      ? () {
+                          _searchController.clear();
+                          setState(() {
+                            _searchQuery = '';
+                            _selectedCategory = 'All';
+                            _selectedDietary = 'All';
+                          });
+                        }
+                      : null,
                 ),
               )
-            else
+            else ...[
+              // Section header gives the feed a clear identity and shows how
+              // many boxes are actually live right now.
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
+                  child: SectionHeader(
+                    icon: Icons.bolt_rounded,
+                    title: 'Live Surplus Near You',
+                    trailing: '${filtered.length} live',
+                  ),
+                ),
+              ),
               SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
@@ -445,6 +488,7 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                   childCount: filtered.length,
                 ),
               ),
+            ],
 
             const SliverToBoxAdapter(child: SizedBox(height: 30)),
           ],

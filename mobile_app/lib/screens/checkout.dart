@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:async';
 import '../services/order_manager.dart';
 import '../services/api_service.dart';
+import '../widgets/common_ui.dart';
 import 'student_shell.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -365,7 +366,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Ephemeral Lock Countdown Banner
+          // Where am I in the rescue journey — always visible above the fold.
+          const FlowStepper(
+            steps: ['Reserve', 'Pay', 'Collect'],
+            currentStep: 1,
+          ),
+
+          const SizedBox(height: 16),
+
+            // Ephemeral Lock Countdown Banner — spoken in customer language;
+            // backing-store details stay out of the UI copy.
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
@@ -390,7 +400,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            "Redis Ephemeral Lock Active",
+                            "Box held only for you",
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
@@ -424,7 +434,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    "This box is held exclusively for you. Complete payment before timer expires.",
+                    "Your price is locked until the timer ends. Finish payment to guarantee today's remaining boxes.",
                     style: TextStyle(fontSize: 11, color: Colors.grey[700]),
                     textAlign: TextAlign.center,
                   ),
