@@ -336,7 +336,11 @@ class ApiService {
     }
   }
 
-  /// Fetches real walking street route coordinates from the free public OSRM Walking API
+  /// Fetches real walking street route coordinates from the free public OSRM Walking API.
+  ///
+  /// Besides the polyline, the result carries turn-by-turn `steps` — each with
+  /// `instruction` (human text), `type`/`modifier` (for the icon) and
+  /// `distanceMeters` — so the map can show actual directions instead of just a line.
   static Future<Map<String, dynamic>?> fetchWalkingRoute({
     required double startLng,
     required double startLat,
@@ -345,7 +349,7 @@ class ApiService {
   }) async {
     try {
       final url = 'https://router.project-osrm.org/route/v1/walking/$startLng,$startLat;$endLng,$endLat?overview=full&geometries=geojson&steps=true';
-      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 5));
+      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 6));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['routes'] != null && (data['routes'] as List).isNotEmpty) {
@@ -355,10 +359,31 @@ class ApiService {
               .toList();
           final distance = (route['distance'] as num).toDouble();
           final durationSec = (route['duration'] as num).toDouble();
+
+          // Flatten every leg's steps into one readable instruction list.
+          final List<Map<String, dynamic>> steps = [];
+          for (final leg in (route['legs'] as List? ?? [])) {
+            for (final step in (leg['steps'] as List? ?? [])) {
+              final maneuver = step['maneuver'] ?? {};
+              final type = maneuver['type']?.toString() ?? 'continue';
+              final modifier = maneuver['modifier']?.toString();
+              final street = (step['name']?.toString() ?? '').trim();
+              steps.add({
+                'instruction': _osrmInstruction(type, modifier, street),
+                'type': type,
+                'modifier': modifier,
+                'street': street,
+                'distanceMeters': ((step['distance'] as num?) ?? 0).round(),
+              });
+            }
+          }
+
           return {
             'coordinates': coords,
             'distanceMeters': distance.round(),
             'durationMinutes': (durationSec / 60).round().clamp(1, 999),
+            'steps': steps,
+            'source': 'osrm',
           };
         }
       }
@@ -366,6 +391,65 @@ class ApiService {
       debugPrint("OSRM walking route error: $e");
     }
     return null;
+  }
+
+  /// Turns one OSRM maneuver into a human instruction like
+  /// "Turn right onto 12th Main".
+  static String _osrmInstruction(String type, String? modifier, String street) {
+    final onto = street.isEmpty ? '' : ' onto $street';
+    final on = street.isEmpty ? 'the path ahead' : street;
+    switch (type) {
+      case 'depart':
+        return modifier == null ? 'Head $on' : 'Head ${_dirWord(modifier)} on $on';
+      case 'arrive':
+        return 'Arrive at your destination — show your pickup pass';
+      case 'turn':
+        if (modifier == 'uturn') return 'Make a U-turn$onto';
+        return 'Turn ${_dirWord(modifier)}$onto';
+      case 'end of road':
+        return 'At the end of the road, turn ${_dirWord(modifier)}$onto';
+      case 'new name':
+        return 'Continue$onto';
+      case 'merge':
+        return 'Merge$onto';
+      case 'roundabout':
+      case 'rotary':
+        return 'At the roundabout, take the exit$onto';
+      case 'on ramp':
+        return 'Take the ramp$onto';
+      case 'off ramp':
+        return 'Take the exit$onto';
+      case 'fork':
+        return 'Keep ${_dirWord(modifier)} at the fork$onto';
+      case 'continue':
+      default:
+        if (modifier == 'uturn') return 'Make a U-turn and continue on $on';
+        if (modifier != null && modifier != 'straight') {
+          return 'Keep ${_dirWord(modifier)} on $on';
+        }
+        return street.isEmpty ? 'Continue straight ahead' : 'Continue on $on';
+    }
+  }
+
+  static String _dirWord(String? modifier) {
+    switch (modifier) {
+      case 'slight left':
+        return 'slightly left';
+      case 'slight right':
+        return 'slightly right';
+      case 'sharp left':
+        return 'sharp left';
+      case 'sharp right':
+        return 'sharp right';
+      case 'uturn':
+        return 'for a U-turn';
+      case 'left':
+        return 'left';
+      case 'right':
+        return 'right';
+      default:
+        return 'ahead';
+    }
   }
 
   /// Asks SaveBite AI for personalized surplus recommendations

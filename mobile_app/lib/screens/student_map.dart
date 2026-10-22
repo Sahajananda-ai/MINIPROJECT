@@ -34,6 +34,8 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
   int? _walkingDistanceMeters;
   int? _walkingDurationMinutes;
   bool _isLoadingRoute = false;
+  List<Map<String, dynamic>> _routeSteps = [];
+  bool _routeIsSimulated = false;
 
   @override
   void initState() {
@@ -72,6 +74,9 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
           _walkingRoutePoints = coords;
           _walkingDistanceMeters = routeData['distanceMeters'];
           _walkingDurationMinutes = routeData['durationMinutes'];
+          _routeSteps =
+              (routeData['steps'] as List? ?? []).cast<Map<String, dynamic>>();
+          _routeIsSimulated = false;
           _isLoadingRoute = false;
         });
         return;
@@ -107,6 +112,8 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
         _walkingRoutePoints = simulatedRoute;
         _walkingDistanceMeters = meters;
         _walkingDurationMinutes = (meters / 80).round().clamp(1, 99);
+        _routeSteps = [];
+        _routeIsSimulated = true;
         _isLoadingRoute = false;
       });
     }
@@ -290,6 +297,8 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                     _walkingRoutePoints = [];
                     _walkingDistanceMeters = null;
                     _walkingDurationMinutes = null;
+                    _routeSteps = [];
+                    _routeIsSimulated = false;
                   });
                 }
               },
@@ -714,6 +723,8 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                     _walkingRoutePoints = [];
                     _walkingDistanceMeters = null;
                     _walkingDurationMinutes = null;
+                    _routeSteps = [];
+                    _routeIsSimulated = false;
                   });
                 },
               ),
@@ -721,6 +732,12 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
           ),
           const SizedBox(height: 12),
           const Divider(height: 1),
+          const SizedBox(height: 12),
+          _DirectionsButton(
+            hasSteps: _routeSteps.isNotEmpty,
+            isSimulated: _routeIsSimulated,
+            onTap: _openDirectionsSheet,
+          ),
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -837,10 +854,18 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                     _walkingRoutePoints = [];
                     _walkingDistanceMeters = null;
                     _walkingDurationMinutes = null;
+                    _routeSteps = [];
+                    _routeIsSimulated = false;
                   });
                 },
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          _DirectionsButton(
+            hasSteps: _routeSteps.isNotEmpty,
+            isSimulated: _routeIsSimulated,
+            onTap: _openDirectionsSheet,
           ),
           const SizedBox(height: 12),
           Container(
@@ -878,6 +903,260 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Opens the turn-by-turn walking directions as a bottom sheet.
+  ///
+  /// Uses the real OSRM steps when available; when the route is only an
+  /// approximation (OSRM unreachable), the sheet says so plainly instead
+  /// of pretending to be street-accurate.
+  void _openDirectionsSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(ctx).size.height * 0.72,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 10),
+                width: 44,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 14, 8, 6),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF006C5B).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.directions_walk_rounded,
+                        color: Color(0xFF006C5B),
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Walking Directions",
+                            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            _walkingDistanceMeters != null
+                                ? "$_walkingDistanceMeters m • ${_walkingDurationMinutes ?? 3} min"
+                                : "Approximate walking path",
+                            style: const TextStyle(
+                              color: Color(0xFF006C5B),
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+              ),
+              if (_routeIsSimulated)
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF6E6),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.orange.shade200),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.info_outline_rounded, size: 16, color: Colors.orange),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          "Live routing is unreachable — showing an approximate walking path. Follow signage on campus.",
+                          style: TextStyle(fontSize: 11.5, color: Color(0xFF8A5A00)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              Flexible(
+                child: _routeSteps.isEmpty
+                    ? const Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Text(
+                          "Detailed steps are unavailable right now — follow the highlighted path on the map.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey, fontSize: 13),
+                        ),
+                      )
+                    : ListView.separated(
+                        shrinkWrap: true,
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                        itemCount: _routeSteps.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (ctx2, i) {
+                          final step = _routeSteps[i];
+                          final isLast = i == _routeSteps.length - 1;
+                          final meters = (step['distanceMeters'] as num?)?.round() ?? 0;
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                margin: const EdgeInsets.only(top: 10),
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: isLast
+                                      ? Colors.green.shade50
+                                      : const Color(0xFF006C5B).withValues(alpha: 0.08),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  _stepIcon(step['type']?.toString(), step['modifier']?.toString()),
+                                  size: 18,
+                                  color: isLast ? Colors.green : const Color(0xFF006C5B),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  child: Text(
+                                    step['instruction']?.toString() ?? 'Continue',
+                                    style: const TextStyle(fontSize: 13.5, height: 1.35),
+                                  ),
+                                ),
+                              ),
+                              if (!isLast && meters >= 20)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 14, left: 6),
+                                  child: Text(
+                                    "$meters m",
+                                    style: TextStyle(fontSize: 11.5, color: Colors.grey[500]),
+                                  ),
+                                ),
+                            ],
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Picks the closest Material icon for an OSRM maneuver.
+  static IconData _stepIcon(String? type, String? modifier) {
+    final m = modifier ?? '';
+    switch (type) {
+      case 'arrive':
+        return Icons.place_rounded;
+      case 'depart':
+        return Icons.directions_walk_rounded;
+      case 'roundabout':
+      case 'rotary':
+        return Icons.roundabout_right_rounded;
+      case 'merge':
+        return Icons.merge_type_rounded;
+      case 'fork':
+        return Icons.call_split_rounded;
+      case 'on ramp':
+      case 'off ramp':
+        return Icons.add_road_rounded;
+      case 'turn':
+      case 'end of road':
+        break;
+    }
+    if (m == 'uturn') return Icons.u_turn_left_rounded;
+    if (m.contains('slight')) {
+      return m.contains('left')
+          ? Icons.turn_slight_left_rounded
+          : Icons.turn_slight_right_rounded;
+    }
+    if (m.contains('sharp')) {
+      return m.contains('left')
+          ? Icons.turn_sharp_left_rounded
+          : Icons.turn_sharp_right_rounded;
+    }
+    if (m == 'left') return Icons.turn_left_rounded;
+    if (m == 'right') return Icons.turn_right_rounded;
+    return Icons.arrow_upward_rounded;
+  }
+}
+
+/// The compact "Step-by-step directions" row shown on both preview cards.
+class _DirectionsButton extends StatelessWidget {
+  final bool hasSteps;
+  final bool isSimulated;
+  final VoidCallback onTap;
+
+  const _DirectionsButton({
+    required this.hasSteps,
+    required this.isSimulated,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xFF006C5B).withValues(alpha: 0.06),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFF006C5B).withValues(alpha: 0.2)),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.signpost_rounded, size: 18, color: Color(0xFF006C5B)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  hasSteps
+                      ? "Step-by-step directions (${isSimulated ? 'approximate' : 'live route'})"
+                      : "See walking directions",
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF006C5B),
+                  ),
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, size: 18, color: Color(0xFF006C5B)),
+            ],
+          ),
+        ),
       ),
     );
   }
