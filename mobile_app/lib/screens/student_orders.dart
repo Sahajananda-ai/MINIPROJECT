@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/order_manager.dart';
 import '../services/api_service.dart';
+import '../widgets/common_ui.dart';
 import 'student_shell.dart';
 
 class StudentOrdersScreen extends StatefulWidget {
@@ -529,7 +530,14 @@ class _StudentOrdersScreenState extends State<StudentOrdersScreen> {
                   ],
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
+                WeatherNudge(
+                  latitude: order.latitude,
+                  longitude: order.longitude,
+                  closingText:
+                      "${order.closingTime.hour}:${order.closingTime.minute.toString().padLeft(2, '0')}",
+                ),
+                const SizedBox(height: 6),
                 Divider(color: Colors.grey.withValues(alpha: 0.2)),
                 const SizedBox(height: 12),
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/weather_service.dart';
 import '../theme/savebite_theme.dart';
 
 /// Shared building blocks used across the student and vendor flows so every
@@ -341,6 +342,97 @@ class AppErrorState extends StatelessWidget {
       ctaLabel: 'Try again',
       ctaIcon: Icons.refresh_rounded,
       onCta: onRetry,
+    );
+  }
+}
+
+/// Live weather chip for a pickup point (Open-Meteo, free/no key).
+///
+/// Renders nothing while loading or on failure — weather is advice,
+/// never a blocker for collecting a paid order.
+class WeatherNudge extends StatefulWidget {
+  final double latitude;
+  final double longitude;
+  final String closingText;
+  final bool compact;
+
+  const WeatherNudge({
+    super.key,
+    required this.latitude,
+    required this.longitude,
+    required this.closingText,
+    this.compact = false,
+  });
+
+  @override
+  State<WeatherNudge> createState() => _WeatherNudgeState();
+}
+
+class _WeatherNudgeState extends State<WeatherNudge> {
+  PickupWeather? _weather;
+  bool _tried = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final w = await WeatherService.getPickupWeather(
+      widget.latitude,
+      widget.longitude,
+    );
+    if (!mounted) return;
+    setState(() {
+      _weather = w;
+      _tried = true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_tried || _weather == null) return const SizedBox.shrink();
+    final w = _weather!;
+    final alert = w.isRaining || w.rainLikely;
+
+    final bg = alert ? const Color(0xFFFFF3E0) : SaveBiteTheme.tealWash;
+    final fg = alert ? const Color(0xFFB45309) : SaveBiteTheme.tealPrimary;
+    final icon = w.isRaining
+        ? Icons.water_drop_rounded
+        : w.rainLikely
+            ? Icons.grain_rounded
+            : Icons.wb_sunny_rounded;
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: widget.compact ? 8 : 10,
+        vertical: widget.compact ? 4 : 6,
+      ),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: fg.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: widget.compact ? 13 : 15, color: fg),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              w.nudge(widget.closingText),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: SaveBiteTheme.body(
+                size: widget.compact ? 10.5 : 11.5,
+                w: FontWeight.w700,
+                color: fg,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

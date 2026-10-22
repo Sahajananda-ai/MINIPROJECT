@@ -6,6 +6,7 @@ import '../services/deal_pricing.dart';
 import '../services/location_service.dart';
 import '../services/order_manager.dart';
 import '../services/session_service.dart';
+import '../widgets/common_ui.dart';
 import 'checkout.dart';
 import 'student_shell.dart';
 
@@ -860,6 +861,13 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
                 },
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          WeatherNudge(
+            latitude: shopPoint.latitude,
+            longitude: shopPoint.longitude,
+            closingText:
+                "${order.closingTime.hour}:${order.closingTime.minute.toString().padLeft(2, '0')}",
           ),
           const SizedBox(height: 12),
           _DirectionsButton(
