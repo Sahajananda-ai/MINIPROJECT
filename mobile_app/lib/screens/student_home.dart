@@ -6,6 +6,7 @@ import '../services/order_manager.dart';
 import '../theme/savebite_theme.dart';
 import '../widgets/common_ui.dart';
 import 'checkout.dart';
+import 'student_chat.dart';
 import 'student_shell.dart';
 
 class StudentHomeScreen extends StatefulWidget {
@@ -488,10 +489,89 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
                   childCount: filtered.length,
                 ),
               ),
+
+              // Ask SaveBite AI concierge entry point
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
+                  child: _buildAiConciergeBanner(context),
+                ),
+              ),
             ],
 
             const SliverToBoxAdapter(child: SizedBox(height: 30)),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Banner inviting students to ask the AI concierge about live deals,
+  /// prices and how pickup works — grounded in real server data.
+  Widget _buildAiConciergeBanner(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const StudentChatScreen()),
+        ),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF006C5B), Color(0xFF004D40)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF006C5B).withValues(alpha: 0.28),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Ask SaveBite AI',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Best deals, prices & pickup — answered from live data',
+                      style: GoogleFonts.inter(
+                        color: Colors.white.withValues(alpha: 0.82),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 14),
+            ],
+          ),
         ),
       ),
     );

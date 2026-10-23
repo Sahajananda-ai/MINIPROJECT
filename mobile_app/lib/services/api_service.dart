@@ -477,6 +477,26 @@ class ApiService {
     return null;
   }
 
+  /// Sends a question to the SaveBite AI concierge and returns its reply.
+  /// The answer is grounded in live deal data on the server, so it's real,
+  /// not hallucinated. Returns {reply, source, active_deals} or null.
+  static Future<Map<String, dynamic>?> askConcierge(String message) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/ai/chat'),
+        headers: _headers(),
+        body: jsonEncode({"message": message}),
+      );
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      debugPrint("Concierge error: ${response.body}");
+    } catch (e) {
+      debugPrint("Concierge request failed: $e");
+    }
+    return null;
+  }
+
   /// Converts a pickup point's coordinates into a short human address
   /// (e.g. "Amarjyothi Nagara, Hebbal, Bengaluru") via the free
   /// Nominatim / OpenStreetMap reverse geocoder — no API key needed.

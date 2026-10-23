@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from ..database import get_db
 from .. import models
-from ..services import decay_pricing, ai_vision_curator
+from ..services import decay_pricing, ai_vision_curator, ai_concierge
 
 router = APIRouter(
     prefix="/ai",
@@ -144,6 +144,24 @@ def get_ai_deal_recommendation(request: AiRecommendRequest, db: Session = Depend
         projected_savings=savings,
         carbon_offset_kg=co2
     )
+
+class ChatRequest(BaseModel):
+    message: str
+
+class ChatResponse(BaseModel):
+    success: bool
+    reply: str
+    source: str
+    active_deals: int = 0
+
+@router.post("/chat", response_model=ChatResponse)
+def chat(request: ChatRequest, db: Session = Depends(get_db)):
+    """
+    Ask SaveBite AI concierge. Answers are grounded in live deal data
+    (real shops, prices, closing times) so they're genuinely useful.
+    """
+    result = ai_concierge.answer(request.message or "", db)
+    return ChatResponse(**result)
 
 @router.post("/generate-box-description", response_model=GenerateBoxDescriptionResponse)
 def generate_mystery_box_description(request: GenerateBoxDescriptionRequest):
