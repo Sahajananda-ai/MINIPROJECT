@@ -862,7 +862,12 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          AddressLine(
+            latitude: shopPoint.latitude,
+            longitude: shopPoint.longitude,
+            maxLines: 2,
+          ),
+          const SizedBox(height: 8),
           WeatherNudge(
             latitude: shopPoint.latitude,
             longitude: shopPoint.longitude,

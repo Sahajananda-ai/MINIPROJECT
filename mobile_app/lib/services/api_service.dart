@@ -477,6 +477,54 @@ class ApiService {
     return null;
   }
 
+  /// Converts a pickup point's coordinates into a short human address
+  /// (e.g. "Amarjyothi Nagara, Hebbal, Bengaluru") via the free
+  /// Nominatim / OpenStreetMap reverse geocoder — no API key needed.
+  ///
+  /// Honours Nominatim's usage policy: identifying User-Agent and at most
+  /// one request per second, with an in-memory cache so repeat renders
+  /// never hit the network.
+  static final Map<String, String?> _geocodeCache = {};
+  static DateTime _lastGeocode = DateTime.fromMillisecondsSinceEpoch(0);
+
+  static Future<String?> reverseGeocode(double latitude, double longitude) async {
+    final key = '${latitude.toStringAsFixed(3)},${longitude.toStringAsFixed(3)}';
+    if (_geocodeCache.containsKey(key)) return _geocodeCache[key];
+
+    try {
+      // Stay within 1 request/second as required by the Nominatim policy.
+      final sinceLast = DateTime.now().difference(_lastGeocode);
+      if (sinceLast.inMilliseconds < 1100) {
+        await Future.delayed(Duration(milliseconds: 1100 - sinceLast.inMilliseconds));
+      }
+      _lastGeocode = DateTime.now();
+
+      final url = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse'
+        '?format=jsonv2&zoom=16&lat=$latitude&lon=$longitude',
+      );
+      final response = await http.get(url, headers: {
+        'User-Agent': 'SaveBiteApp/1.0 (campus food-rescue demo)',
+      }).timeout(const Duration(seconds: 6));
+
+      String? result;
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final full = (data['display_name'] as String?) ?? '';
+        if (full.isNotEmpty) {
+          // Keep only the locally meaningful part (street/area/city).
+          final parts = full.split(', ').where((p) => p.trim().isNotEmpty).toList();
+          result = parts.take(3).join(', ');
+        }
+      }
+      _geocodeCache[key] = result;
+      return result;
+    } catch (e) {
+      debugPrint("reverseGeocode error: $e");
+      return null;
+    }
+  }
+
   /// Curates an enticing mystery description from surplus food photos/items without revealing contents
   static Future<Map<String, dynamic>?> generateMysteryBoxDescription({
     String? category,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 import '../services/weather_service.dart';
 import '../theme/savebite_theme.dart';
 
@@ -342,6 +343,71 @@ class AppErrorState extends StatelessWidget {
       ctaLabel: 'Try again',
       ctaIcon: Icons.refresh_rounded,
       onCta: onRetry,
+    );
+  }
+}
+
+/// Short human-readable pickup address from free Nominatim reverse geocoding.
+///
+/// Shows "📍 <area, street, city>" for a shop's coordinates; renders nothing
+/// while loading or when geocoding fails, so cards never wait on it.
+class AddressLine extends StatefulWidget {
+  final double latitude;
+  final double longitude;
+  final int? maxLines;
+
+  const AddressLine({
+    super.key,
+    required this.latitude,
+    required this.longitude,
+    this.maxLines = 1,
+  });
+
+  @override
+  State<AddressLine> createState() => _AddressLineState();
+}
+
+class _AddressLineState extends State<AddressLine> {
+  String? _address;
+  bool _tried = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final a = await ApiService.reverseGeocode(
+      widget.latitude,
+      widget.longitude,
+    );
+    if (!mounted) return;
+    setState(() {
+      _address = a;
+      _tried = true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_tried || _address == null || _address!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.location_on_outlined, size: 13, color: SaveBiteTheme.textMuted),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            _address!,
+            maxLines: widget.maxLines,
+            overflow: TextOverflow.ellipsis,
+            style: SaveBiteTheme.body(size: 11.5),
+          ),
+        ),
+      ],
     );
   }
 }
